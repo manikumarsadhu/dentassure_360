@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "86286543718",
+    "project_id": "dentassure-360",
+    "storage_bucket": "dentassure-360.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86286543718:android:81524a769c591a0cbb76a7",
+        "android_client_info": {
+          "package_name": "com.example.dentassure_360"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAubZNKnCxkb4foDotY5-0zNiSr2X_6Ibc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

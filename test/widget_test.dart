@@ -1,0 +1,379 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:dentassure_360/models/attendance.dart';
+import 'package:dentassure_360/models/company.dart';
+import 'package:dentassure_360/models/leave_balance.dart';
+import 'package:dentassure_360/models/leave_request.dart';
+import 'package:dentassure_360/models/user_profile.dart';
+import 'package:dentassure_360/utils/auth_error_handler.dart';
+
+void main() {
+  group('UserProfile Model', () {
+    test('UserProfile full serialization and deserialization', () {
+      final joining = DateTime(2025, 1, 15);
+      final created = DateTime(2025, 1, 10);
+      final user = UserProfile(
+        uid: 'user_123',
+        companyId: 'company_abc',
+        companyName: 'Dentassure Technologies',
+        name: 'Aman Sharma',
+        email: 'aman@dentassuretech.com',
+        phone: '+91 9876543210',
+        employeeId: 'EMP-001',
+        department: 'Software Engineering',
+        designation: 'Senior Flutter Developer',
+        role: 'EMPLOYEE',
+        status: 'ACTIVE',
+        joiningDate: joining,
+        createdAt: created,
+        updatedAt: created,
+      );
+
+      final map = user.toMap();
+      expect(map['uid'], 'user_123');
+      expect(map['companyId'], 'company_abc');
+      expect(map['companyName'], 'Dentassure Technologies');
+      expect(map['name'], 'Aman Sharma');
+      expect(map['email'], 'aman@dentassuretech.com');
+      expect(map['phone'], '+91 9876543210');
+      expect(map['employeeId'], 'EMP-001');
+      expect(map['department'], 'Software Engineering');
+      expect(map['designation'], 'Senior Flutter Developer');
+      expect(map['role'], 'EMPLOYEE');
+      expect(map['status'], 'ACTIVE');
+      expect(map['joiningDate'], isA<Timestamp>());
+
+      final fromMap = UserProfile.fromMap(map, docId: 'user_123');
+      expect(fromMap.uid, 'user_123');
+      expect(fromMap.companyId, 'company_abc');
+      expect(fromMap.companyName, 'Dentassure Technologies');
+      expect(fromMap.name, 'Aman Sharma');
+      expect(fromMap.email, 'aman@dentassuretech.com');
+      expect(fromMap.phone, '+91 9876543210');
+      expect(fromMap.employeeId, 'EMP-001');
+      expect(fromMap.department, 'Software Engineering');
+      expect(fromMap.designation, 'Senior Flutter Developer');
+      expect(fromMap.role, 'EMPLOYEE');
+      expect(fromMap.status, 'ACTIVE');
+      expect(fromMap.isCompanyAdmin, isFalse);
+      expect(fromMap.isEmployee, isTrue);
+      expect(fromMap.isActive, isTrue);
+      expect(fromMap.isSuspended, isFalse);
+      expect(fromMap.joiningDate?.year, 2025);
+    });
+
+    test('UserProfile copyWith and status transitions', () {
+      final user = UserProfile(
+        uid: 'user_456',
+        companyId: 'company_abc',
+        name: 'Alex Turner',
+        email: 'alex@dentassuretech.com',
+        role: 'EMPLOYEE',
+        status: 'ACTIVE',
+      );
+
+      final suspended = user.copyWith(status: 'SUSPENDED');
+      expect(suspended.isActive, isFalse);
+      expect(suspended.isSuspended, isTrue);
+      expect(suspended.name, 'Alex Turner');
+    });
+
+    test('UserProfile role helper getters', () {
+      final admin = UserProfile(
+        uid: '1',
+        companyId: 'c1',
+        name: 'Tech Admin',
+        email: 'admin@c1.com',
+        role: 'COMPANY_ADMIN',
+      );
+      expect(admin.isCompanyAdmin, isTrue);
+      expect(admin.isEmployee, isFalse);
+
+      final employee = UserProfile(
+        uid: '2',
+        companyId: 'c1',
+        name: 'Software Engineer',
+        email: 'dev@c1.com',
+        role: 'EMPLOYEE',
+      );
+      expect(employee.isCompanyAdmin, isFalse);
+      expect(employee.isEmployee, isTrue);
+
+      final manager = UserProfile(
+        uid: '3',
+        companyId: 'c1',
+        name: 'Engineering Manager',
+        email: 'manager@c1.com',
+        role: 'MANAGER',
+      );
+      expect(manager.isManager, isTrue);
+    });
+  });
+
+  group('LeaveRequest Model', () {
+    test('LeaveRequest serialization and deserialization', () {
+      final leave = LeaveRequest(
+        id: 'req_123',
+        companyId: 'comp_1',
+        uid: 'user_1',
+        employeeId: 'EMP-001',
+        employeeName: 'Aman Sharma',
+        department: 'Software Engineering',
+        leaveType: 'CASUAL',
+        startDate: '2026-09-18',
+        endDate: '2026-09-19',
+        totalDays: 2,
+        reason: 'Tech conference & hackathon',
+        status: 'PENDING',
+      );
+
+      final map = leave.toMap();
+      expect(map['id'], 'req_123');
+      expect(map['companyId'], 'comp_1');
+      expect(map['uid'], 'user_1');
+      expect(map['employeeId'], 'EMP-001');
+      expect(map['employeeName'], 'Aman Sharma');
+      expect(map['leaveType'], 'CASUAL');
+      expect(map['startDate'], '2026-09-18');
+      expect(map['endDate'], '2026-09-19');
+      expect(map['totalDays'], 2);
+      expect(map['reason'], 'Tech conference & hackathon');
+      expect(map['status'], 'PENDING');
+
+      final fromMap = LeaveRequest.fromMap(map, docId: 'req_123');
+      expect(fromMap.id, 'req_123');
+      expect(fromMap.displayLeaveType, 'Casual Leave');
+      expect(fromMap.totalDays, 2);
+      expect(fromMap.isPending, isTrue);
+      expect(fromMap.isApproved, isFalse);
+      expect(fromMap.formattedDateRange, contains('Sep 18 – Sep 19'));
+    });
+
+    test('LeaveRequest coversDate helper for attendance integration', () {
+      final approvedLeave = LeaveRequest(
+        id: 'req_456',
+        companyId: 'comp_1',
+        uid: 'user_1',
+        employeeId: 'EMP-001',
+        employeeName: 'Aman Sharma',
+        leaveType: 'SICK',
+        startDate: '2026-09-15',
+        endDate: '2026-09-17',
+        totalDays: 3,
+        reason: 'Flu recovery',
+        status: 'APPROVED',
+      );
+
+      expect(approvedLeave.coversDate('2026-09-15'), isTrue);
+      expect(approvedLeave.coversDate('2026-09-16'), isTrue);
+      expect(approvedLeave.coversDate('2026-09-17'), isTrue);
+      expect(approvedLeave.coversDate('2026-09-14'), isFalse);
+      expect(approvedLeave.coversDate('2026-09-18'), isFalse);
+
+      final pendingLeave = approvedLeave.copyWith(status: 'PENDING');
+      expect(pendingLeave.coversDate('2026-09-15'), isFalse);
+    });
+  });
+
+  group('LeaveBalance Model', () {
+    test('Calculates available leave balance from approved requests', () {
+      final requests = [
+        LeaveRequest(
+          id: '1',
+          companyId: 'c',
+          uid: 'u',
+          employeeId: 'E1',
+          employeeName: 'A',
+          leaveType: 'CASUAL',
+          startDate: '2026-01-01',
+          endDate: '2026-01-02',
+          totalDays: 2,
+          reason: 'Test',
+          status: 'APPROVED',
+        ),
+        LeaveRequest(
+          id: '2',
+          companyId: 'c',
+          uid: 'u',
+          employeeId: 'E1',
+          employeeName: 'A',
+          leaveType: 'CASUAL',
+          startDate: '2026-02-01',
+          endDate: '2026-02-04',
+          totalDays: 4,
+          reason: 'Test',
+          status: 'PENDING',
+        ),
+        LeaveRequest(
+          id: '3',
+          companyId: 'c',
+          uid: 'u',
+          employeeId: 'E1',
+          employeeName: 'A',
+          leaveType: 'SICK',
+          startDate: '2026-03-01',
+          endDate: '2026-03-03',
+          totalDays: 3,
+          reason: 'Fever',
+          status: 'APPROVED',
+        ),
+      ];
+
+      final balance = LeaveBalance.fromApprovedRequests(requests);
+      expect(balance.totalCasual, 12);
+      expect(balance.usedCasual, 2);
+      expect(balance.availableCasual, 10);
+
+      expect(balance.totalSick, 10);
+      expect(balance.usedSick, 3);
+      expect(balance.availableSick, 7);
+
+      expect(balance.totalAnnual, 15);
+      expect(balance.usedAnnual, 0);
+      expect(balance.availableAnnual, 15);
+    });
+  });
+
+  group('Attendance Model', () {
+    test('Attendance serialization and deserialization', () {
+      final clockInTime = DateTime(2026, 9, 15, 9, 2);
+      final clockOutTime = DateTime(2026, 9, 15, 17, 5);
+
+      final att = Attendance(
+        id: 'user1_2026-09-15',
+        uid: 'user1',
+        companyId: 'comp1',
+        employeeId: 'EMP-001',
+        employeeName: 'Aman Sharma',
+        department: 'Software Engineering',
+        date: '2026-09-15',
+        clockIn: clockInTime,
+        clockOut: clockOutTime,
+        status: 'PRESENT',
+        workingMinutes: 483,
+      );
+
+      final map = att.toMap();
+      expect(map['id'], 'user1_2026-09-15');
+      expect(map['uid'], 'user1');
+      expect(map['companyId'], 'comp1');
+      expect(map['employeeId'], 'EMP-001');
+      expect(map['employeeName'], 'Aman Sharma');
+      expect(map['department'], 'Software Engineering');
+      expect(map['date'], '2026-09-15');
+      expect(map['status'], 'PRESENT');
+      expect(map['workingMinutes'], 483);
+      expect(map['clockIn'], isA<Timestamp>());
+      expect(map['clockOut'], isA<Timestamp>());
+
+      final fromMap = Attendance.fromMap(map, docId: 'user1_2026-09-15');
+      expect(fromMap.id, 'user1_2026-09-15');
+      expect(fromMap.employeeName, 'Aman Sharma');
+      expect(fromMap.status, 'PRESENT');
+      expect(fromMap.isPresent, isTrue);
+      expect(fromMap.isLate, isFalse);
+      expect(fromMap.isCompleted, isTrue);
+      expect(fromMap.isClockedIn, isFalse);
+      expect(fromMap.formattedClockIn, '09:02 AM');
+      expect(fromMap.formattedClockOut, '05:05 PM');
+      expect(fromMap.formattedWorkingDuration, '8h 03m');
+    });
+
+    test('Attendance state and working duration formatting', () {
+      final clockInTime = DateTime(2026, 9, 15, 9, 45);
+      final attLate = Attendance(
+        id: 'user2_2026-09-15',
+        uid: 'user2',
+        companyId: 'comp1',
+        employeeId: 'EMP-002',
+        employeeName: 'Alex Turner',
+        date: '2026-09-15',
+        clockIn: clockInTime,
+        clockOut: null,
+        status: 'LATE',
+        workingMinutes: 0,
+      );
+
+      expect(attLate.isClockedIn, isTrue);
+      expect(attLate.isCompleted, isFalse);
+      expect(attLate.isLate, isTrue);
+      expect(attLate.formattedClockIn, '09:45 AM');
+      expect(attLate.formattedClockOut, '—');
+    });
+
+    test('Date key formatter utility', () {
+      final date = DateTime(2026, 9, 15);
+      expect(Attendance.formatDateKey(date), '2026-09-15');
+    });
+  });
+
+  group('Company Model', () {
+    test('Company serialization and deserialization', () {
+      final now = DateTime.now();
+      final company = Company(
+        id: 'comp_999',
+        name: 'Dentassure Technologies',
+        createdBy: 'user_123',
+        adminEmail: 'admin@dentassuretech.com',
+        adminName: 'Vikram Malhotra',
+        status: 'ACTIVE',
+        createdAt: now,
+      );
+
+      final map = company.toMap();
+      expect(map['id'], 'comp_999');
+      expect(map['name'], 'Dentassure Technologies');
+      expect(map['createdBy'], 'user_123');
+      expect(map['adminEmail'], 'admin@dentassuretech.com');
+      expect(map['adminName'], 'Vikram Malhotra');
+      expect(map['status'], 'ACTIVE');
+      expect(map['createdAt'], isA<Timestamp>());
+
+      final fromMap = Company.fromMap(map, docId: 'comp_999');
+      expect(fromMap.id, 'comp_999');
+      expect(fromMap.name, 'Dentassure Technologies');
+      expect(fromMap.createdBy, 'user_123');
+      expect(fromMap.adminEmail, 'admin@dentassuretech.com');
+      expect(fromMap.adminName, 'Vikram Malhotra');
+      expect(fromMap.status, 'ACTIVE');
+    });
+  });
+
+  group('AuthErrorHandler', () {
+    test('Returns friendly message for FirebaseAuthException codes', () {
+      final emailInUse = FirebaseAuthException(
+        code: 'email-already-in-use',
+        message: 'The email address is already in use by another account.',
+      );
+      expect(
+        AuthErrorHandler.getErrorMessage(emailInUse),
+        contains('already registered'),
+      );
+
+      final invalidCred = FirebaseAuthException(
+        code: 'invalid-credential',
+      );
+      expect(
+        AuthErrorHandler.getErrorMessage(invalidCred),
+        contains('Incorrect email or password'),
+      );
+
+      final networkErr = FirebaseAuthException(
+        code: 'network-request-failed',
+      );
+      expect(
+        AuthErrorHandler.getErrorMessage(networkErr),
+        contains('internet connection'),
+      );
+    });
+
+    test('Handles generic String and Exception', () {
+      expect(
+        AuthErrorHandler.getErrorMessage('Custom error message'),
+        'Custom error message',
+      );
+    });
+  });
+}

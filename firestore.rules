@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // HELPER FUNCTIONS FOR MULTI-TENANT ISOLATION
+    // ==========================================
+
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Get current user's profile document data
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Get the company ID of the current authenticated user
+    function getUserCompanyId() {
+      return getUserProfile().companyId;
+    }
+
+    // Get the role of the current authenticated user
+    function getUserRole() {
+      return getUserProfile().role;
+    }
+
+    // Check if current user is active
+    function isUserActive() {
+      return getUserProfile().status == 'ACTIVE';
+    }
+
+    // Check if current user is a Company Admin or Super Admin
+    function isCompanyAdmin() {
+      return isSignedIn() && isUserActive() &&
+        (getUserRole() == 'COMPANY_ADMIN' || getUserRole() == 'SUPER_ADMIN');
+    }
+
+    // Check if current user belongs to the specified company
+    function belongsToCompany(companyId) {
+      return isSignedIn() && isUserActive() && getUserCompanyId() == companyId;
+    }
+
+    // ==========================================
+    // COMPANIES COLLECTION (/companies/{companyId})
+    // ==========================================
+    match /companies/{companyId} {
+      // Any authenticated employee or admin of this company can read their company info
+      allow read: if isSignedIn() && (belongsToCompany(companyId) || resource == null);
+
+      // A user can create a company document during registration if they mark themselves as createdBy
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+
+      // Only Company Admins belonging to this company can update or delete company data
+      allow update, delete: if isCompanyAdmin() && belongsToCompany(companyId);
+    }
+
+    // ==========================================
+    // USERS COLLECTION (/users/{userId})
+    // ==========================================
+    match /users/{userId} {
+      // A user can read their own profile, or a Company Admin can read profiles of employees in their company
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+      );
+
+      // Creation allowed during:
+      // 1. Initial Company Admin registration (self create matching auth UID)
+      // 2. Company Admin adding an employee to their company
+      allow create: if isSignedIn() && (
+        (request.auth.uid == userId && request.resource.data.role == 'COMPANY_ADMIN') ||
+        (isCompanyAdmin() && request.resource.data.companyId == getUserCompanyId())
+      );
+
+      // Updates:
+      // 1. User updating their own profile (cannot escalate role or change companyId)
+      // 2. Company Admin managing users in their company
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == userId &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.companyId == resource.data.companyId
+        ) ||
+        (
+          isCompanyAdmin() &&
+          resource.data.companyId == getUserCompanyId() &&
+          request.resource.data.companyId == getUserCompanyId()
+        )
+      );
+
+      // Only Company Admin can delete employee accounts within their company
+      allow delete: if isCompanyAdmin() &&
+        resource.data.companyId == getUserCompanyId() &&
+        request.auth.uid != userId;
+    }
+
+    // ==========================================
+    // ATTENDANCE COLLECTION (/attendance/{attendanceId})
+    // ==========================================
+    match /attendance/{attendanceId} {
+      // Employee can read own attendance; Admin can read all attendance for their company
+      allow read: if isSignedIn() && (
+        resource.data.uid == request.auth.uid ||
+        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+      );
+
+      // Employee can clock in/out for their own record under their assigned company
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.companyId == getUserCompanyId();
+
+      allow update: if isSignedIn() && (
+        (resource.data.uid == request.auth.uid && request.resource.data.companyId == getUserCompanyId()) ||
+        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+      );
+
+      // Only Company Admin can delete attendance records
+      allow delete: if isCompanyAdmin() && resource.data.companyId == getUserCompanyId();
+    }
+
+    // ==========================================
+    // LEAVE REQUESTS COLLECTION (/leave_requests/{requestId})
+    // ==========================================
+    match /leave_requests/{requestId} {
+      // Employee can read own leave requests; Admin can read all leave requests in their company
+      allow read: if isSignedIn() && (
+        resource.data.uid == request.auth.uid ||
+        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+      );
+
+      // Employee creates their own leave application with PENDING status
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.companyId == getUserCompanyId() &&
+        request.resource.data.status == 'PENDING';
+
+      // Updates:
+      // 1. Employee cancelling their own pending request
+      // 2. Company Admin / HR reviewing (Approve/Reject)
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == resource.data.uid &&
+          resource.data.status == 'PENDING' &&
+          request.resource.data.status == 'CANCELLED'
+        ) ||
+        (
+          isCompanyAdmin() &&
+          resource.data.companyId == getUserCompanyId()
+        )
+      );
+
+      // Only Company Admin can delete leave records
+      allow delete: if isCompanyAdmin() && resource.data.companyId == getUserCompanyId();
+    }
+
+    // ==========================================
+    // DEFAULT RULE: DENY EVERYTHING ELSE
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
