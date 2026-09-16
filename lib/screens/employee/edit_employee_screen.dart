@@ -22,6 +22,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _empIdController;
   late TextEditingController _designationController;
+  late TextEditingController _avatarUrlController;
+  late TextEditingController _salaryController;
 
   final _firestoreService = FirestoreService();
 
@@ -39,6 +41,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
 
   final List<String> _roles = [
     'EMPLOYEE',
+    'TEAM_LEAD',
     'MANAGER',
     'HR',
     'COMPANY_ADMIN',
@@ -53,6 +56,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   late String _selectedDepartment;
   late String _selectedRole;
   late String _selectedStatus;
+  late String _reportingManagerUid;
+  late String _reportingManagerName;
   DateTime? _joiningDate;
   bool _saving = false;
 
@@ -64,12 +69,18 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     _phoneController = TextEditingController(text: emp.phone);
     _empIdController = TextEditingController(text: emp.employeeId);
     _designationController = TextEditingController(text: emp.designation);
+    _avatarUrlController = TextEditingController(text: emp.avatarUrl);
+    _salaryController = TextEditingController(
+      text: emp.monthlySalary > 0 ? emp.monthlySalary.toStringAsFixed(0) : '',
+    );
 
     _selectedDepartment = _departments.contains(emp.department)
         ? emp.department
         : _departments.first;
     _selectedRole = _roles.contains(emp.role) ? emp.role : 'EMPLOYEE';
     _selectedStatus = _statuses.contains(emp.status) ? emp.status : 'ACTIVE';
+    _reportingManagerUid = emp.reportingManagerUid;
+    _reportingManagerName = emp.reportingManagerName;
     _joiningDate = emp.joiningDate ?? DateTime.now();
   }
 
@@ -79,6 +90,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     _phoneController.dispose();
     _empIdController.dispose();
     _designationController.dispose();
+    _avatarUrlController.dispose();
+    _salaryController.dispose();
     super.dispose();
   }
 
@@ -117,6 +130,10 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         designation: _designationController.text.trim(),
         role: _selectedRole,
         status: _selectedStatus,
+        avatarUrl: _avatarUrlController.text.trim(),
+        reportingManagerUid: _reportingManagerUid,
+        reportingManagerName: _reportingManagerName,
+        monthlySalary: double.tryParse(_salaryController.text.trim()) ?? 0,
         joiningDate: _joiningDate,
         updatedAt: DateTime.now(),
       );
@@ -250,6 +267,19 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Avatar URL
+                TextFormField(
+                  controller: _avatarUrlController,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Avatar Image URL (Optional)',
+                    hintText: 'https://...',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.image_outlined),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Department
                 DropdownButtonFormField<String>(
                   initialValue: _selectedDepartment,
@@ -345,6 +375,66 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                       });
                     }
                   },
+                ),
+                const SizedBox(height: 16),
+
+                StreamBuilder<List<UserProfile>>(
+                  stream: _firestoreService.streamCompanyEmployees(
+                    widget.employee.companyId,
+                  ),
+                  builder: (context, snapshot) {
+                    final managers = (snapshot.data ?? [])
+                        .where((u) =>
+                            u.uid != widget.employee.uid &&
+                            (u.isManager ||
+                                u.isTeamLead ||
+                                u.isCompanyAdmin ||
+                                u.isHR))
+                        .toList();
+                    final values = ['', ...managers.map((m) => m.uid)];
+                    final current = values.contains(_reportingManagerUid)
+                        ? _reportingManagerUid
+                        : '';
+                    return DropdownButtonFormField<String>(
+                      initialValue: current,
+                      decoration: const InputDecoration(
+                        labelText: 'Reporting manager / team lead',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.supervisor_account_outlined),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('None'),
+                        ),
+                        ...managers.map(
+                          (m) => DropdownMenuItem(
+                            value: m.uid,
+                            child: Text('${m.name} (${m.role})'),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        final selected =
+                            managers.where((m) => m.uid == val).firstOrNull;
+                        setState(() {
+                          _reportingManagerUid = val ?? '';
+                          _reportingManagerName = selected?.name ?? '';
+                        });
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _salaryController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly salary',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.payments_outlined),
+                  ),
                 ),
                 const SizedBox(height: 16),
 

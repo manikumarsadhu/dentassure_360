@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'models/user_profile.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_company_screen.dart';
-import 'screens/dashboard/admin_dashboard.dart';
 import 'screens/dashboard/employee_dashboard.dart';
+import 'screens/dashboard/platform_admin_dashboard.dart';
+import 'screens/dashboard/role_portal.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 
@@ -61,9 +61,9 @@ class AuthGate extends StatelessWidget {
 
         final user = authSnapshot.data;
 
-        // User is not signed in
+        // User is not signed in -> Directly show Login Screen
         if (user == null) {
-          return const AuthChoiceScreen();
+          return const LoginScreen();
         }
 
         // User is authenticated -> Stream their Firestore UserProfile in real-time
@@ -107,131 +107,19 @@ class AuthGate extends StatelessWidget {
             }
 
             // Route based on role
-            if (profile.isCompanyAdmin || profile.isSuperAdmin) {
-              return AdminDashboard(userProfile: profile);
+            if (profile.isPlatformAdmin) {
+              return PlatformAdminDashboard(userProfile: profile);
+            } else if (profile.isCompanyAdmin ||
+                profile.isHR ||
+                profile.isManager ||
+                profile.isTeamLead) {
+              return RolePortal(userProfile: profile);
             } else {
               return EmployeeDashboard(userProfile: profile);
             }
           },
         );
       },
-    );
-  }
-}
-
-/// Welcome screen for unauthenticated users
-class AuthChoiceScreen extends StatelessWidget {
-  const AuthChoiceScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.corporate_fare_rounded,
-                  size: 72,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Dentassure 360',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'IT Workforce & SaaS Employee Management',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // Login Button
-                SizedBox(
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Log In',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Register Company Button
-                SizedBox(
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterCompanyScreen(),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: theme.colorScheme.primary,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Register Company',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Secure cloud authentication & multi-tenant isolation',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

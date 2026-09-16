@@ -12,6 +12,13 @@ class UserProfile {
   final String designation;
   final String role;
   final String status;
+  final String avatarUrl;
+  final String reportingManagerUid;
+  final String reportingManagerName;
+  final double monthlySalary;
+  final bool onboardingDocsCollected;
+  final bool onboardingAssetsAssigned;
+  final bool onboardingAccessReady;
   final DateTime? joiningDate;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -28,19 +35,34 @@ class UserProfile {
     this.designation = 'Staff',
     required this.role,
     this.status = 'ACTIVE',
+    this.avatarUrl = '',
+    this.reportingManagerUid = '',
+    this.reportingManagerName = '',
+    this.monthlySalary = 0,
+    this.onboardingDocsCollected = false,
+    this.onboardingAssetsAssigned = false,
+    this.onboardingAccessReady = false,
     this.joiningDate,
     this.createdAt,
     this.updatedAt,
   });
 
+  bool get isPlatformAdmin => role == 'PLATFORM_ADMIN' || role == 'SUPER_ADMIN';
+  bool get isSuperAdmin => role == 'SUPER_ADMIN' || role == 'PLATFORM_ADMIN';
   bool get isCompanyAdmin => role == 'COMPANY_ADMIN';
   bool get isEmployee => role == 'EMPLOYEE';
-  bool get isSuperAdmin => role == 'SUPER_ADMIN';
   bool get isManager => role == 'MANAGER';
   bool get isHR => role == 'HR';
+  bool get isTeamLead => role == 'TEAM_LEAD';
+  bool get isPeopleOps => isCompanyAdmin || isHR || isPlatformAdmin;
+  bool get isTeamApprover => isTeamLead || isManager || isPeopleOps;
 
   bool get isActive => status.toUpperCase() == 'ACTIVE';
   bool get isSuspended => status.toUpperCase() == 'SUSPENDED';
+  bool get isOnboardingComplete =>
+      onboardingDocsCollected &&
+      onboardingAssetsAssigned &&
+      onboardingAccessReady;
 
   Map<String, dynamic> toMap() {
     return {
@@ -55,6 +77,13 @@ class UserProfile {
       'designation': designation,
       'role': role,
       'status': status,
+      'avatarUrl': avatarUrl,
+      'reportingManagerUid': reportingManagerUid,
+      'reportingManagerName': reportingManagerName,
+      'monthlySalary': monthlySalary,
+      'onboardingDocsCollected': onboardingDocsCollected,
+      'onboardingAssetsAssigned': onboardingAssetsAssigned,
+      'onboardingAccessReady': onboardingAccessReady,
       'joiningDate': joiningDate != null
           ? Timestamp.fromDate(joiningDate!)
           : null,
@@ -87,6 +116,13 @@ class UserProfile {
       designation: map['designation'] ?? 'Staff',
       role: map['role'] ?? 'EMPLOYEE',
       status: map['status'] ?? 'ACTIVE',
+      avatarUrl: map['avatarUrl'] ?? '',
+      reportingManagerUid: map['reportingManagerUid'] ?? '',
+      reportingManagerName: map['reportingManagerName'] ?? '',
+      monthlySalary: (map['monthlySalary'] as num?)?.toDouble() ?? 0,
+      onboardingDocsCollected: map['onboardingDocsCollected'] == true,
+      onboardingAssetsAssigned: map['onboardingAssetsAssigned'] == true,
+      onboardingAccessReady: map['onboardingAccessReady'] == true,
       joiningDate: parseDate(map['joiningDate']),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
@@ -105,6 +141,13 @@ class UserProfile {
     String? designation,
     String? role,
     String? status,
+    String? avatarUrl,
+    String? reportingManagerUid,
+    String? reportingManagerName,
+    double? monthlySalary,
+    bool? onboardingDocsCollected,
+    bool? onboardingAssetsAssigned,
+    bool? onboardingAccessReady,
     DateTime? joiningDate,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -121,6 +164,16 @@ class UserProfile {
       designation: designation ?? this.designation,
       role: role ?? this.role,
       status: status ?? this.status,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      reportingManagerUid: reportingManagerUid ?? this.reportingManagerUid,
+      reportingManagerName: reportingManagerName ?? this.reportingManagerName,
+      monthlySalary: monthlySalary ?? this.monthlySalary,
+      onboardingDocsCollected:
+          onboardingDocsCollected ?? this.onboardingDocsCollected,
+      onboardingAssetsAssigned:
+          onboardingAssetsAssigned ?? this.onboardingAssetsAssigned,
+      onboardingAccessReady:
+          onboardingAccessReady ?? this.onboardingAccessReady,
       joiningDate: joiningDate ?? this.joiningDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

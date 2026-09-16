@@ -45,12 +45,16 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
 
   final List<String> _roles = [
     'EMPLOYEE',
+    'TEAM_LEAD',
     'MANAGER',
     'HR',
   ];
 
   late String _selectedDepartment;
   late String _selectedRole;
+  String _reportingManagerUid = '';
+  String _reportingManagerName = '';
+  final _salaryController = TextEditingController();
   DateTime _joiningDate = DateTime.now();
   bool _loading = false;
   bool _obscurePassword = true;
@@ -85,6 +89,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _designationController.dispose();
+    _salaryController.dispose();
     super.dispose();
   }
 
@@ -116,9 +121,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
 
     try {
       debugPrint('[AddEmployee] Step 1: Creating Auth user for employee ${_emailController.text.trim()}');
-      // 1. Create Firebase Auth user for the employee via ephemeral app session
-      final credential = await _authService
-          .createEmployeeAuthAccount(
+      final uid = await _authService
+          .createAuthUserUid(
             email: _emailController.text,
             password: _passwordController.text,
           )
@@ -129,14 +133,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             ),
           );
 
-      final user = credential.user;
-      if (user == null) {
-        throw Exception('Failed to generate employee authentication identity.');
-      }
-
-      // 2. Build UserProfile model for employee
       final employeeProfile = UserProfile(
-        uid: user.uid,
+        uid: uid,
         companyId: widget.adminProfile.companyId,
         companyName: widget.adminProfile.companyName,
         name: _nameController.text.trim(),
@@ -149,12 +147,15 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             : 'Staff',
         role: _selectedRole,
         status: 'ACTIVE',
+        reportingManagerUid: _reportingManagerUid,
+        reportingManagerName: _reportingManagerName,
+        monthlySalary: double.tryParse(_salaryController.text.trim()) ?? 0,
         joiningDate: _joiningDate,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      debugPrint('[AddEmployee] Step 2: Saving employee profile in Firestore (UID: ${user.uid})');
+      debugPrint('[AddEmployee] Step 2: Saving employee profile in Firestore (UID: $uid)');
       // 3. Save profile under /users/{uid} in Firestore
       await _firestoreService
           .addEmployee(employeeProfile)
@@ -412,7 +413,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Role Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: _selectedRole,
                   decoration: const InputDecoration(
@@ -433,6 +433,66 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       });
                     }
                   },
+                ),
+                const SizedBox(height: 16),
+
+                StreamBuilder<List<UserProfile>>(
+                  stream: _firestoreService.streamCompanyEmployees(
+                    widget.adminProfile.companyId,
+                  ),
+                  builder: (context, snapshot) {
+                    final managers = (snapshot.data ?? [])
+                        .where((u) =>
+                            u.isManager ||
+                            u.isTeamLead ||
+                            u.isCompanyAdmin ||
+                            u.isHR)
+                        .toList();
+                    final values = ['', ...managers.map((m) => m.uid)];
+                    final current = values.contains(_reportingManagerUid)
+                        ? _reportingManagerUid
+                        : '';
+                    return DropdownButtonFormField<String>(
+                      initialValue: current,
+                      decoration: const InputDecoration(
+                        labelText: 'Reporting manager / team lead',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.supervisor_account_outlined),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('None'),
+                        ),
+                        ...managers.map(
+                          (m) => DropdownMenuItem(
+                            value: m.uid,
+                            child: Text('${m.name} (${m.role})'),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        final selected = managers
+                            .where((m) => m.uid == val)
+                            .firstOrNull;
+                        setState(() {
+                          _reportingManagerUid = val ?? '';
+                          _reportingManagerName = selected?.name ?? '';
+                        });
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _salaryController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly salary (optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.payments_outlined),
+                  ),
                 ),
                 const SizedBox(height: 16),
 

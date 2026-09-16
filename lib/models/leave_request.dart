@@ -7,6 +7,7 @@ class LeaveRequest {
   final String employeeId;
   final String employeeName;
   final String department;
+  final String reportingManagerUid;
   final String leaveType; // CASUAL, SICK, ANNUAL, UNPAID
   final String startDate; // YYYY-MM-DD
   final String endDate; // YYYY-MM-DD
@@ -29,6 +30,7 @@ class LeaveRequest {
     required this.employeeId,
     required this.employeeName,
     this.department = 'General',
+    this.reportingManagerUid = '',
     required this.leaveType,
     required this.startDate,
     required this.endDate,
@@ -111,6 +113,7 @@ class LeaveRequest {
       'employeeId': employeeId,
       'employeeName': employeeName,
       'department': department,
+      'reportingManagerUid': reportingManagerUid,
       'leaveType': leaveType,
       'startDate': startDate,
       'endDate': endDate,
@@ -146,6 +149,7 @@ class LeaveRequest {
       employeeId: map['employeeId'] ?? '',
       employeeName: map['employeeName'] ?? '',
       department: map['department'] ?? 'General',
+      reportingManagerUid: map['reportingManagerUid'] ?? '',
       leaveType: map['leaveType'] ?? 'CASUAL',
       startDate: map['startDate'] ?? '',
       endDate: map['endDate'] ?? '',
@@ -168,6 +172,7 @@ class LeaveRequest {
     String? employeeId,
     String? employeeName,
     String? department,
+    String? reportingManagerUid,
     String? leaveType,
     String? startDate,
     String? endDate,
@@ -188,6 +193,7 @@ class LeaveRequest {
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
       department: department ?? this.department,
+      reportingManagerUid: reportingManagerUid ?? this.reportingManagerUid,
       leaveType: leaveType ?? this.leaveType,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,

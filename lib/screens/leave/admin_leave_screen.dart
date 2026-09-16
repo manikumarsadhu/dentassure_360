@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 import '../../models/leave_request.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/team_scope.dart';
 
 class AdminLeaveScreen extends StatefulWidget {
   final UserProfile adminProfile;
+  final bool teamScoped;
+  final bool embedded;
 
   const AdminLeaveScreen({
     super.key,
     required this.adminProfile,
+    this.teamScoped = false,
+    this.embedded = false,
   });
 
   @override
@@ -151,10 +156,22 @@ class _AdminLeaveScreenState extends State<AdminLeaveScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Leave Management & Approvals'),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+        title: Text(widget.teamScoped
+            ? 'Team Leave Approvals'
+            : 'Leave Management & Approvals'),
       ),
-      body: StreamBuilder<List<LeaveRequest>>(
+      body: StreamBuilder<List<UserProfile>>(
+        stream: _firestoreService
+            .streamCompanyEmployees(widget.adminProfile.companyId),
+        builder: (context, usersSnap) {
+          final users = usersSnap.data ?? [];
+          final allowed = widget.teamScoped
+              ? TeamScope.reportUids(widget.adminProfile, users)
+              : null;
+          return StreamBuilder<List<LeaveRequest>>(
         stream: _firestoreService
             .streamCompanyLeaveRequests(widget.adminProfile.companyId),
         builder: (context, snapshot) {
@@ -171,7 +188,9 @@ class _AdminLeaveScreenState extends State<AdminLeaveScreen> {
             );
           }
 
-          final allRequests = snapshot.data ?? [];
+          final allRequests = (snapshot.data ?? [])
+              .where((r) => allowed == null || allowed.contains(r.uid))
+              .toList();
           final filteredRequests = _filterRequests(allRequests);
 
           final pendingCount = allRequests.where((r) => r.isPending).length;
@@ -427,6 +446,8 @@ class _AdminLeaveScreenState extends State<AdminLeaveScreen> {
               ),
             ],
           );
+        },
+      );
         },
       ),
     );

@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/team_scope.dart';
 import 'add_employee_screen.dart';
 import 'employee_detail_screen.dart';
+import '../../widgets/user_avatar.dart';
 
 class EmployeeListScreen extends StatefulWidget {
   final UserProfile adminProfile;
+  final bool teamScoped;
+  final bool embedded;
 
   const EmployeeListScreen({
     super.key,
     required this.adminProfile,
+    this.teamScoped = false,
+    this.embedded = false,
   });
 
   @override
@@ -69,40 +75,38 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final canAdd = widget.adminProfile.isPeopleOps;
+
+    void openAddEmployee() {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) => AddEmployeeScreen(
+            adminProfile: widget.adminProfile,
+          ),
+        ),
+      );
+    }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Employees Directory'),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+        title: Text(widget.teamScoped ? 'My Team' : 'Employees Directory'),
         actions: [
+          if (canAdd)
           IconButton(
             tooltip: 'Add Employee',
             icon: const Icon(Icons.person_add_alt_1),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddEmployeeScreen(
-                    adminProfile: widget.adminProfile,
-                  ),
-                ),
-              );
-            },
+            onPressed: openAddEmployee,
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddEmployeeScreen(
-                adminProfile: widget.adminProfile,
-              ),
-            ),
-          );
-        },
+      floatingActionButton: canAdd
+          ? FloatingActionButton.extended(
+        onPressed: openAddEmployee,
         icon: const Icon(Icons.add),
         label: const Text('Add Employee'),
-      ),
+      )
+          : null,
       body: Column(
         children: [
           // Search & Filters Header
@@ -224,10 +228,12 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                   );
                 }
 
-                final rawList = snapshot.data ?? [];
-                final employees = _filterEmployees(rawList);
+                final scoped = widget.teamScoped
+                    ? TeamScope.reportsFor(widget.adminProfile, snapshot.data ?? [])
+                    : (snapshot.data ?? []);
+                final employees = _filterEmployees(scoped);
 
-                if (rawList.isEmpty) {
+                if (scoped.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
@@ -255,16 +261,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                           ),
                           const SizedBox(height: 24),
                           FilledButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => AddEmployeeScreen(
-                                    adminProfile: widget.adminProfile,
-                                  ),
-                                ),
-                              );
-                            },
+                            onPressed: openAddEmployee,
                             icon: const Icon(Icons.person_add_alt_1),
                             label: const Text('Add Employee'),
                           ),
@@ -378,23 +375,17 @@ class _EmployeeCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                avatarUrl: employee.avatarUrl,
+                name: employee.name,
                 radius: 24,
                 backgroundColor: isActive
                     ? theme.colorScheme.primaryContainer
                     : Colors.red.shade100,
-                child: Text(
-                  employee.name.isNotEmpty
-                      ? employee.name[0].toUpperCase()
-                      : 'E',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isActive
-                        ? theme.colorScheme.primary
-                        : Colors.red.shade800,
-                  ),
-                ),
+                textColor: isActive
+                    ? theme.colorScheme.primary
+                    : Colors.red.shade800,
+                fontSize: 20,
               ),
               const SizedBox(width: 14),
               Expanded(

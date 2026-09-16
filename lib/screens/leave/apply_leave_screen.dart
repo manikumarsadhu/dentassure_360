@@ -112,6 +112,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
         employeeId: widget.employee.employeeId,
         employeeName: widget.employee.name,
         department: widget.employee.department,
+        reportingManagerUid: widget.employee.reportingManagerUid,
         leaveType: _selectedLeaveType,
         startDate: LeaveRequest.formatDateKey(_startDate),
         endDate: LeaveRequest.formatDateKey(_endDate),

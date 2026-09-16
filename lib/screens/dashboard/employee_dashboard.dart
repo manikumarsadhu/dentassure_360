@@ -8,6 +8,12 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../attendance/employee_attendance_history_screen.dart';
 import '../leave/employee_leave_screen.dart';
+import '../profile/my_profile_screen.dart';
+import '../timesheet/timesheet_screen.dart';
+import '../expenses/expenses_screen.dart';
+import '../assets/assets_screen.dart';
+import '../payslips/payslips_screen.dart';
+import '../../widgets/user_avatar.dart';
 
 class EmployeeDashboard extends StatefulWidget {
   final UserProfile userProfile;
@@ -205,52 +211,117 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     }
   }
 
+  Future<void> _startBreak(Attendance attendance, String type) async {
+    if (!attendance.isClockedIn) return;
+    setState(() => _actionLoading = true);
+    try {
+      await _firestoreService.startBreak(
+        attendanceId: attendance.id,
+        type: type,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not start break: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  Future<void> _endBreak(Attendance attendance) async {
+    setState(() => _actionLoading = true);
+    try {
+      await _firestoreService.endBreak(attendanceId: attendance.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not end break: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final user = widget.userProfile;
     final todayKey = Attendance.formatDateKey(_currentTime);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              user.companyName.isNotEmpty ? user.companyName : 'Dentassure 360',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return StreamBuilder<UserProfile?>(
+      stream: _firestoreService.streamUserProfile(widget.userProfile.uid),
+      initialData: widget.userProfile,
+      builder: (context, profileSnapshot) {
+        final user = profileSnapshot.data ?? widget.userProfile;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.companyName.isNotEmpty
+                      ? user.companyName
+                      : 'Dentassure 360',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${user.designation} • ${user.department}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '${user.designation} • ${user.department}',
-              style: TextStyle(
-                fontSize: 11,
-                color: theme.colorScheme.onSurfaceVariant,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: IconButton(
+                  tooltip: 'My Profile',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MyProfileScreen(userProfile: user),
+                      ),
+                    );
+                  },
+                  icon: UserAvatar(
+                    avatarUrl: user.avatarUrl,
+                    name: user.name,
+                    radius: 16,
+                    fontSize: 13,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Sign Out',
-            onPressed: _handleLogout,
-            icon: const Icon(Icons.logout_rounded),
+              IconButton(
+                tooltip: 'Sign Out',
+                onPressed: _handleLogout,
+                icon: const Icon(Icons.logout_rounded),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Greeting Banner
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          body: RefreshIndicator(
+            onRefresh: () async {
+              setState(() {});
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Greeting Banner
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -270,140 +341,277 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'E',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
+                  const SizedBox(height: 20),
+
+                  // Real-Time Attendance Card with Stream
+                  StreamBuilder<Attendance?>(
+                    stream: _firestoreService.streamTodayAttendance(
+                      uid: user.uid,
+                      date: todayKey,
+                    ),
+                    builder: (context, snapshot) {
+                      final attendance = snapshot.data;
+                      return _buildAttendanceCard(theme, attendance, user);
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Workspace Quick Actions
+                  Text(
+                    'My Workspace',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue.shade50,
+                        child: Icon(Icons.history_rounded,
+                            color: Colors.blue.shade700),
                       ),
+                      title: const Text(
+                        'Attendance History',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('View daily logs and working hours'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeAttendanceHistoryScreen(
+                              employee: user,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.purple.shade50,
+                        child: Icon(Icons.event_available_rounded,
+                            color: Colors.purple.shade700),
+                      ),
+                      title: const Text(
+                        'Leave Applications',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle:
+                          const Text('Request time off or check leave balance'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeLeaveScreen(
+                              employee: user,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.orange.shade50,
+                        child: Icon(Icons.timer_outlined,
+                            color: Colors.orange.shade700),
+                      ),
+                      title: const Text(
+                        'My Timesheet',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('Log project hours'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TimesheetScreen(
+                              viewer: user,
+                              personalOnly: true,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.brown.shade50,
+                        child: Icon(Icons.receipt_long_outlined,
+                            color: Colors.brown.shade700),
+                      ),
+                      title: const Text(
+                        'My Expenses',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('Submit and track claims'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExpensesScreen(
+                              viewer: user,
+                              personalOnly: true,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blueGrey.shade50,
+                        child: Icon(Icons.devices_outlined,
+                            color: Colors.blueGrey.shade700),
+                      ),
+                      title: const Text(
+                        'My Assets',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                          'Laptops, SIMs and ID cards assigned to you'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AssetsScreen(viewer: user),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.green.shade50,
+                        child: Icon(Icons.payments_outlined,
+                            color: Colors.green.shade700),
+                      ),
+                      title: const Text(
+                        'My Payslips',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('View issued salary slips'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PayslipsScreen(viewer: user),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      leading: user.avatarUrl.isNotEmpty
+                          ? UserAvatar(
+                              avatarUrl: user.avatarUrl,
+                              name: user.name,
+                              radius: 20,
+                            )
+                          : CircleAvatar(
+                              backgroundColor: Colors.teal.shade50,
+                              child: Icon(Icons.badge_outlined,
+                                  color: Colors.teal.shade700),
+                            ),
+                      title: const Text(
+                        'My Profile Details',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'ID: ${user.employeeId.isNotEmpty ? user.employeeId : user.uid.substring(0, 8)} • ${user.email}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MyProfileScreen(userProfile: user),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-
-              // Real-Time Attendance Card with Stream
-              StreamBuilder<Attendance?>(
-                stream: _firestoreService.streamTodayAttendance(
-                  uid: user.uid,
-                  date: todayKey,
-                ),
-                builder: (context, snapshot) {
-                  final attendance = snapshot.data;
-                  return _buildAttendanceCard(theme, attendance);
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Workspace Quick Actions
-              Text(
-                'My Workspace',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade50,
-                    child: Icon(Icons.history_rounded,
-                        color: Colors.blue.shade700),
-                  ),
-                  title: const Text(
-                    'Attendance History',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text('View daily logs and working hours'),
-                  trailing:
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EmployeeAttendanceHistoryScreen(
-                          employee: user,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.purple.shade50,
-                    child: Icon(Icons.event_available_rounded,
-                        color: Colors.purple.shade700),
-                  ),
-                  title: const Text(
-                    'Leave Applications',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle:
-                      const Text('Request time off or check leave balance'),
-                  trailing:
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EmployeeLeaveScreen(
-                          employee: user,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.teal.shade50,
-                    child: Icon(Icons.badge_outlined,
-                        color: Colors.teal.shade700),
-                  ),
-                  title: const Text(
-                    'My Profile Details',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    'ID: ${user.employeeId.isNotEmpty ? user.employeeId : user.uid.substring(0, 8)} • ${user.email}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildAttendanceCard(ThemeData theme, Attendance? attendance) {
+  Widget _buildAttendanceCard(
+      ThemeData theme, Attendance? attendance, UserProfile user) {
     final bool hasClockedIn = attendance != null && attendance.clockIn != null;
     final bool hasClockedOut =
         attendance != null && attendance.clockOut != null;
@@ -461,24 +669,32 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                 children: [
                   _SummaryItem(
                     label: 'Clock In',
-                    value: attendance.formattedClockIn,
+                    value: attendance.formattedClockInWithSeconds,
                     color: Colors.green.shade700,
                   ),
                   Container(height: 36, width: 1, color: Colors.grey.shade300),
                   _SummaryItem(
                     label: 'Clock Out',
-                    value: attendance.formattedClockOut,
+                    value: attendance.formattedClockOutWithSeconds,
                     color: Colors.orange.shade700,
                   ),
                   Container(height: 36, width: 1, color: Colors.grey.shade300),
                   _SummaryItem(
                     label: 'Working',
-                    value: attendance.formattedWorkingDuration,
+                    value: attendance.liveWorkedLabel(attendance.clockOut),
                     color: Colors.blue.shade700,
                   ),
                 ],
               ),
               const SizedBox(height: 16),
+              if (attendance.breaks.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Breaks: ${attendance.liveBreakLabel(attendance.clockOut)}',
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  ),
+                ),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -511,26 +727,26 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
     // 2. WORKING STATE (Clocked In, Not yet Clocked Out)
     if (hasClockedIn && !hasClockedOut) {
-      final elapsedDuration = attendance.formattedWorkingDuration;
+      final elapsedDuration = attendance.liveWorkedLabel(_currentTime);
       final isLate = attendance.isLate;
+      final onBreak = attendance.isOnBreak;
+      final activeBreak = attendance.activeBreak;
+      final accent = onBreak
+          ? Colors.amber
+          : (isLate ? Colors.orange : Colors.blue);
 
       return Card(
         elevation: 3,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isLate ? Colors.orange.shade300 : Colors.blue.shade300,
-          ),
+          side: BorderSide(color: accent.shade300),
         ),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
-              colors: [
-                isLate ? Colors.orange.shade50 : Colors.blue.shade50,
-                Colors.white,
-              ],
+              colors: [accent.shade50, Colors.white],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -540,31 +756,43 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isLate ? Colors.orange : Colors.green,
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: onBreak
+                                ? Colors.amber.shade700
+                                : (isLate ? Colors.orange : Colors.green),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isLate ? 'Status: Late (Working)' : 'Status: Present',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isLate
-                              ? Colors.orange.shade900
-                              : Colors.green.shade800,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            onBreak
+                                ? 'Status: On ${activeBreak!.label} Break'
+                                : (isLate
+                                    ? 'Status: Late (Working)'
+                                    : 'Status: Present'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: onBreak
+                                  ? Colors.amber.shade900
+                                  : (isLate
+                                      ? Colors.orange.shade900
+                                      : Colors.green.shade800),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Text(
-                    'Since ${attendance.formattedClockIn}',
+                    'Since ${attendance.formattedClockInWithSeconds}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade700,
@@ -574,24 +802,81 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Live Elapsed Working Time
               Text(
                 elapsedDuration,
                 style: TextStyle(
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -1,
-                  color: isLate ? Colors.orange.shade900 : Colors.blue.shade900,
+                  color: accent.shade900,
                 ),
               ),
               Text(
-                'Time worked today',
+                onBreak ? 'Time worked (paused)' : 'Time worked today',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
-              const SizedBox(height: 24),
-
-              // Clock Out Button
+              if (onBreak) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${activeBreak!.label} break · ${attendance.liveBreakLabel(_currentTime)}',
+                  style: TextStyle(
+                    color: Colors.amber.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else if (attendance.breaks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Breaks today: ${attendance.liveBreakLabel(_currentTime)}',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                ),
+              ],
+              const SizedBox(height: 20),
+              if (onBreak)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed:
+                        _actionLoading ? null : () => _endBreak(attendance),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(
+                      'END ${activeBreak!.label.toUpperCase()} & RESUME',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _actionLoading
+                            ? null
+                            : () => _startBreak(attendance, 'LUNCH'),
+                        icon: const Icon(Icons.restaurant_rounded),
+                        label: const Text('Lunch break'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _actionLoading
+                            ? null
+                            : () => _startBreak(attendance, 'OTHER'),
+                        icon: const Icon(Icons.coffee_rounded),
+                        label: const Text('Other break'),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 height: 52,

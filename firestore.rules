@@ -2,162 +2,264 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ==========================================
-    // HELPER FUNCTIONS FOR MULTI-TENANT ISOLATION
-    // ==========================================
-
-    // Check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Get current user's profile document data
     function getUserProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Get the company ID of the current authenticated user
     function getUserCompanyId() {
       return getUserProfile().companyId;
     }
 
-    // Get the role of the current authenticated user
     function getUserRole() {
       return getUserProfile().role;
     }
 
-    // Check if current user is active
     function isUserActive() {
       return getUserProfile().status == 'ACTIVE';
     }
 
-    // Check if current user is a Company Admin or Super Admin
+    function isPlatformAdmin() {
+      return isSignedIn() && isUserActive() &&
+        (getUserRole() == 'PLATFORM_ADMIN' || getUserRole() == 'SUPER_ADMIN');
+    }
+
     function isCompanyAdmin() {
       return isSignedIn() && isUserActive() &&
-        (getUserRole() == 'COMPANY_ADMIN' || getUserRole() == 'SUPER_ADMIN');
+        (getUserRole() == 'COMPANY_ADMIN' || isPlatformAdmin());
     }
 
-    // Check if current user belongs to the specified company
+    function isHR() {
+      return isSignedIn() && isUserActive() && getUserRole() == 'HR';
+    }
+
+    function isPeopleOps() {
+      return isCompanyAdmin() || isHR();
+    }
+
+    function isManagerRole() {
+      return isSignedIn() && isUserActive() && getUserRole() == 'MANAGER';
+    }
+
+    function isTeamLeadRole() {
+      return isSignedIn() && isUserActive() && getUserRole() == 'TEAM_LEAD';
+    }
+
+    function isTeamLeadOrManager() {
+      return isManagerRole() || isTeamLeadRole();
+    }
+
     function belongsToCompany(companyId) {
-      return isSignedIn() && isUserActive() && getUserCompanyId() == companyId;
+      return isSignedIn() && isUserActive() &&
+        (getUserCompanyId() == companyId || isPlatformAdmin());
     }
 
-    // ==========================================
-    // COMPANIES COLLECTION (/companies/{companyId})
-    // ==========================================
+    function sameCompanyDoc() {
+      return resource.data.companyId == getUserCompanyId();
+    }
+
+    function sameCompanyCreate() {
+      return request.resource.data.companyId == getUserCompanyId();
+    }
+
+    function isDirectManagerOf(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)) &&
+        get(/databases/$(database)/documents/users/$(uid)).data.companyId == getUserCompanyId() &&
+        get(/databases/$(database)/documents/users/$(uid)).data.reportingManagerUid == request.auth.uid;
+    }
+
+    function isSkipLevelManagerOf(uid) {
+      return isManagerRole() &&
+        exists(/databases/$(database)/documents/users/$(uid)) &&
+        exists(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/users/$(uid)).data.reportingManagerUid)) &&
+        get(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/users/$(uid)).data.reportingManagerUid)).data.reportingManagerUid == request.auth.uid;
+    }
+
+    function canApprovePerson(uid) {
+      return isPeopleOps() || isDirectManagerOf(uid) || isSkipLevelManagerOf(uid);
+    }
+
+    function canReadCompanyOps() {
+      return isPeopleOps() || isTeamLeadOrManager();
+    }
+
     match /companies/{companyId} {
-      // Any authenticated employee or admin of this company can read their company info
-      allow read: if isSignedIn() && (belongsToCompany(companyId) || resource == null);
+      allow read: if isSignedIn() && (isPlatformAdmin() || belongsToCompany(companyId) || resource == null);
 
-      // A user can create a company document during registration if they mark themselves as createdBy
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow create: if isSignedIn() && (
+        isPlatformAdmin() ||
+        request.resource.data.createdBy == request.auth.uid
+      );
 
-      // Only Company Admins belonging to this company can update or delete company data
-      allow update, delete: if isCompanyAdmin() && belongsToCompany(companyId);
+      allow update, delete: if isPlatformAdmin() || (isCompanyAdmin() && belongsToCompany(companyId));
     }
 
-    // ==========================================
-    // USERS COLLECTION (/users/{userId})
-    // ==========================================
     match /users/{userId} {
-      // A user can read their own profile, or a Company Admin can read profiles of employees in their company
       allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
         request.auth.uid == userId ||
-        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+        (canReadCompanyOps() && resource.data.companyId == getUserCompanyId())
       );
 
-      // Creation allowed during:
-      // 1. Initial Company Admin registration (self create matching auth UID)
-      // 2. Company Admin adding an employee to their company
       allow create: if isSignedIn() && (
-        (request.auth.uid == userId && request.resource.data.role == 'COMPANY_ADMIN') ||
-        (isCompanyAdmin() && request.resource.data.companyId == getUserCompanyId())
+        isPlatformAdmin() ||
+        (request.auth.uid == userId && (request.resource.data.role == 'COMPANY_ADMIN' || request.resource.data.role == 'PLATFORM_ADMIN' || request.resource.data.role == 'SUPER_ADMIN')) ||
+        (isPeopleOps() && request.resource.data.companyId == getUserCompanyId())
       );
 
-      // Updates:
-      // 1. User updating their own profile (cannot escalate role or change companyId)
-      // 2. Company Admin managing users in their company
       allow update: if isSignedIn() && (
+        isPlatformAdmin() ||
         (
           request.auth.uid == userId &&
           request.resource.data.role == resource.data.role &&
           request.resource.data.companyId == resource.data.companyId
         ) ||
         (
-          isCompanyAdmin() &&
+          isPeopleOps() &&
           resource.data.companyId == getUserCompanyId() &&
           request.resource.data.companyId == getUserCompanyId()
         )
       );
 
-      // Only Company Admin can delete employee accounts within their company
-      allow delete: if isCompanyAdmin() &&
+      allow delete: if isPlatformAdmin() || (
+        isCompanyAdmin() &&
         resource.data.companyId == getUserCompanyId() &&
-        request.auth.uid != userId;
+        request.auth.uid != userId
+      );
     }
 
-    // ==========================================
-    // ATTENDANCE COLLECTION (/attendance/{attendanceId})
-    // ==========================================
     match /attendance/{attendanceId} {
-      // Employee can read own attendance; Admin can read all attendance for their company
       allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
         resource.data.uid == request.auth.uid ||
-        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+        (canReadCompanyOps() && sameCompanyDoc())
       );
 
-      // Employee can clock in/out for their own record under their assigned company
       allow create: if isSignedIn() &&
         request.resource.data.uid == request.auth.uid &&
-        request.resource.data.companyId == getUserCompanyId();
+        sameCompanyCreate();
 
       allow update: if isSignedIn() && (
-        (resource.data.uid == request.auth.uid && request.resource.data.companyId == getUserCompanyId()) ||
-        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+        isPlatformAdmin() ||
+        (resource.data.uid == request.auth.uid && sameCompanyCreate()) ||
+        (canReadCompanyOps() && sameCompanyDoc())
       );
 
-      // Only Company Admin can delete attendance records
-      allow delete: if isCompanyAdmin() && resource.data.companyId == getUserCompanyId();
+      allow delete: if isPlatformAdmin() || (isCompanyAdmin() && sameCompanyDoc());
     }
 
-    // ==========================================
-    // LEAVE REQUESTS COLLECTION (/leave_requests/{requestId})
-    // ==========================================
     match /leave_requests/{requestId} {
-      // Employee can read own leave requests; Admin can read all leave requests in their company
       allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
         resource.data.uid == request.auth.uid ||
-        (isCompanyAdmin() && resource.data.companyId == getUserCompanyId())
+        (canReadCompanyOps() && sameCompanyDoc())
       );
 
-      // Employee creates their own leave application with PENDING status
       allow create: if isSignedIn() &&
         request.resource.data.uid == request.auth.uid &&
-        request.resource.data.companyId == getUserCompanyId() &&
+        sameCompanyCreate() &&
         request.resource.data.status == 'PENDING';
 
-      // Updates:
-      // 1. Employee cancelling their own pending request
-      // 2. Company Admin / HR reviewing (Approve/Reject)
       allow update: if isSignedIn() && (
+        isPlatformAdmin() ||
         (
           request.auth.uid == resource.data.uid &&
           resource.data.status == 'PENDING' &&
           request.resource.data.status == 'CANCELLED'
         ) ||
         (
-          isCompanyAdmin() &&
-          resource.data.companyId == getUserCompanyId()
+          sameCompanyDoc() &&
+          canApprovePerson(resource.data.uid)
         )
       );
 
-      // Only Company Admin can delete leave records
-      allow delete: if isCompanyAdmin() && resource.data.companyId == getUserCompanyId();
+      allow delete: if isPlatformAdmin() || (isCompanyAdmin() && sameCompanyDoc());
     }
 
-    // ==========================================
-    // DEFAULT RULE: DENY EVERYTHING ELSE
-    // ==========================================
+    match /timesheets/{entryId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.uid == request.auth.uid ||
+        (canReadCompanyOps() && sameCompanyDoc())
+      );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        sameCompanyCreate();
+
+      allow update: if isSignedIn() && (
+        (resource.data.uid == request.auth.uid && resource.data.status == 'PENDING') ||
+        (sameCompanyDoc() && canApprovePerson(resource.data.uid))
+      );
+
+      allow delete: if isPeopleOps() && sameCompanyDoc();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.uid == request.auth.uid ||
+        (canReadCompanyOps() && sameCompanyDoc())
+      );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        sameCompanyCreate();
+
+      allow update: if isSignedIn() && (
+        (resource.data.uid == request.auth.uid && resource.data.status == 'PENDING') ||
+        (sameCompanyDoc() && canApprovePerson(resource.data.uid))
+      );
+
+      allow delete: if isPeopleOps() && sameCompanyDoc();
+    }
+
+    match /assets/{assetId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.assignedUid == request.auth.uid ||
+        (canReadCompanyOps() && sameCompanyDoc())
+      );
+
+      allow create, update, delete: if isPeopleOps() &&
+        (request.resource.data.companyId == getUserCompanyId() || sameCompanyDoc());
+    }
+
+    match /performance_goals/{goalId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.uid == request.auth.uid ||
+        (canReadCompanyOps() && sameCompanyDoc())
+      );
+
+      allow create, update: if isSignedIn() && (
+        (request.resource.data.uid == request.auth.uid && sameCompanyCreate()) ||
+        (sameCompanyCreate() && canApprovePerson(request.resource.data.uid)) ||
+        (resource != null && sameCompanyDoc() && canApprovePerson(resource.data.uid))
+      );
+
+      allow delete: if isPeopleOps() && sameCompanyDoc();
+    }
+
+    match /candidates/{candidateId} {
+      allow read, create, update, delete: if isPeopleOps() &&
+        (resource == null || sameCompanyDoc() || sameCompanyCreate());
+    }
+
+    match /payslips/{payslipId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.uid == request.auth.uid ||
+        (isPeopleOps() && sameCompanyDoc())
+      );
+
+      allow create, update, delete: if isPeopleOps() &&
+        (resource == null || sameCompanyDoc() || sameCompanyCreate());
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

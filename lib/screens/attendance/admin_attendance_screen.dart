@@ -4,13 +4,18 @@ import '../../models/attendance.dart';
 import '../../models/leave_request.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/team_scope.dart';
 
 class AdminAttendanceScreen extends StatefulWidget {
   final UserProfile adminProfile;
+  final bool teamScoped;
+  final bool embedded;
 
   const AdminAttendanceScreen({
     super.key,
     required this.adminProfile,
+    this.teamScoped = false,
+    this.embedded = false,
   });
 
   @override
@@ -102,8 +107,10 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
         dateKey;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance Records'),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+        title: Text(widget.teamScoped ? 'Team Attendance' : 'Attendance Records'),
         actions: [
           IconButton(
             tooltip: 'Select Date',
@@ -117,7 +124,10 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
           widget.adminProfile.companyId,
         ),
         builder: (context, empSnapshot) {
-          final allEmployees = empSnapshot.data ?? [];
+          final allEmployees = widget.teamScoped
+              ? TeamScope.reportsFor(
+                  widget.adminProfile, empSnapshot.data ?? [])
+              : (empSnapshot.data ?? []);
           final activeEmployees =
               allEmployees.where((e) => e.isActive).toList();
 

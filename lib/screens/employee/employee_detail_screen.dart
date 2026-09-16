@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import 'edit_employee_screen.dart';
+import '../../widgets/user_avatar.dart';
 
 class EmployeeDetailScreen extends StatefulWidget {
   final UserProfile employee;
@@ -190,21 +191,15 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        CircleAvatar(
+                        UserAvatar(
+                          avatarUrl: emp.avatarUrl,
+                          name: emp.name,
                           radius: 36,
                           backgroundColor: emp.isActive
                               ? theme.colorScheme.primary
                               : Colors.red.shade700,
-                          child: Text(
-                            emp.name.isNotEmpty
-                                ? emp.name[0].toUpperCase()
-                                : 'E',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                          ),
+                          textColor: theme.colorScheme.onPrimary,
+                          fontSize: 32,
                         ),
                         const SizedBox(height: 12),
                         Text(

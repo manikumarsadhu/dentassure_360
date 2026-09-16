@@ -6,8 +6,11 @@ import 'package:dentassure_360/models/attendance.dart';
 import 'package:dentassure_360/models/company.dart';
 import 'package:dentassure_360/models/leave_balance.dart';
 import 'package:dentassure_360/models/leave_request.dart';
+import 'package:dentassure_360/models/payslip.dart';
+import 'package:dentassure_360/models/timesheet_entry.dart';
 import 'package:dentassure_360/models/user_profile.dart';
 import 'package:dentassure_360/utils/auth_error_handler.dart';
+import 'package:dentassure_360/utils/team_scope.dart';
 
 void main() {
   group('UserProfile Model', () {
@@ -26,6 +29,7 @@ void main() {
         designation: 'Senior Flutter Developer',
         role: 'EMPLOYEE',
         status: 'ACTIVE',
+        avatarUrl: 'https://images.example.com/avatar123.jpg',
         joiningDate: joining,
         createdAt: created,
         updatedAt: created,
@@ -43,6 +47,7 @@ void main() {
       expect(map['designation'], 'Senior Flutter Developer');
       expect(map['role'], 'EMPLOYEE');
       expect(map['status'], 'ACTIVE');
+      expect(map['avatarUrl'], 'https://images.example.com/avatar123.jpg');
       expect(map['joiningDate'], isA<Timestamp>());
 
       final fromMap = UserProfile.fromMap(map, docId: 'user_123');
@@ -57,6 +62,8 @@ void main() {
       expect(fromMap.designation, 'Senior Flutter Developer');
       expect(fromMap.role, 'EMPLOYEE');
       expect(fromMap.status, 'ACTIVE');
+      expect(fromMap.avatarUrl, 'https://images.example.com/avatar123.jpg');
+      expect(fromMap.reportingManagerUid, '');
       expect(fromMap.isCompanyAdmin, isFalse);
       expect(fromMap.isEmployee, isTrue);
       expect(fromMap.isActive, isTrue);
@@ -74,13 +81,40 @@ void main() {
         status: 'ACTIVE',
       );
 
-      final suspended = user.copyWith(status: 'SUSPENDED');
-      expect(suspended.isActive, isFalse);
-      expect(suspended.isSuspended, isTrue);
-      expect(suspended.name, 'Alex Turner');
+      final updated = user.copyWith(
+        status: 'SUSPENDED',
+        avatarUrl: 'https://images.example.com/alex.png',
+      );
+      expect(updated.isActive, isFalse);
+      expect(updated.isSuspended, isTrue);
+      expect(updated.name, 'Alex Turner');
+      expect(updated.avatarUrl, 'https://images.example.com/alex.png');
     });
 
     test('UserProfile role helper getters', () {
+      final platformAdmin = UserProfile(
+        uid: '0',
+        companyId: '',
+        name: 'Platform Super Admin',
+        email: 'root@platform.io',
+        role: 'PLATFORM_ADMIN',
+      );
+      expect(platformAdmin.isPlatformAdmin, isTrue);
+      expect(platformAdmin.isSuperAdmin, isTrue);
+      expect(platformAdmin.isCompanyAdmin, isFalse);
+      expect(platformAdmin.isEmployee, isFalse);
+
+      final superAdmin = UserProfile(
+        uid: '00',
+        companyId: '',
+        name: 'Super Admin',
+        email: 'super@platform.io',
+        role: 'SUPER_ADMIN',
+      );
+      expect(superAdmin.isPlatformAdmin, isTrue);
+      expect(superAdmin.isSuperAdmin, isTrue);
+      expect(superAdmin.isCompanyAdmin, isFalse);
+
       final admin = UserProfile(
         uid: '1',
         companyId: 'c1',
@@ -89,6 +123,7 @@ void main() {
         role: 'COMPANY_ADMIN',
       );
       expect(admin.isCompanyAdmin, isTrue);
+      expect(admin.isPlatformAdmin, isFalse);
       expect(admin.isEmployee, isFalse);
 
       final employee = UserProfile(
@@ -99,6 +134,7 @@ void main() {
         role: 'EMPLOYEE',
       );
       expect(employee.isCompanyAdmin, isFalse);
+      expect(employee.isPlatformAdmin, isFalse);
       expect(employee.isEmployee, isTrue);
 
       final manager = UserProfile(
@@ -109,6 +145,51 @@ void main() {
         role: 'MANAGER',
       );
       expect(manager.isManager, isTrue);
+
+      final teamLead = UserProfile(
+        uid: '4',
+        companyId: 'c1',
+        name: 'Squad Lead',
+        email: 'lead@c1.com',
+        role: 'TEAM_LEAD',
+        reportingManagerUid: '3',
+        reportingManagerName: 'Engineering Manager',
+      );
+      expect(teamLead.isTeamLead, isTrue);
+      expect(teamLead.isEmployee, isFalse);
+      expect(teamLead.isManager, isFalse);
+      expect(teamLead.reportingManagerUid, '3');
+
+      final hr = UserProfile(
+        uid: '5',
+        companyId: 'c1',
+        name: 'People Partner',
+        email: 'hr@c1.com',
+        role: 'HR',
+      );
+      expect(hr.isHR, isTrue);
+      expect(hr.isPeopleOps, isTrue);
+    });
+
+    test('UserProfile reporting line serializes', () {
+      final user = UserProfile(
+        uid: 'u1',
+        companyId: 'c1',
+        name: 'Dev',
+        email: 'dev@c1.com',
+        role: 'EMPLOYEE',
+        reportingManagerUid: 'lead1',
+        reportingManagerName: 'Team Lead',
+        monthlySalary: 80000,
+      );
+      final map = user.toMap();
+      expect(map['reportingManagerUid'], 'lead1');
+      expect(map['monthlySalary'], 80000);
+      final fromMap = UserProfile.fromMap(map, docId: 'u1');
+      expect(fromMap.reportingManagerUid, 'lead1');
+      expect(fromMap.reportingManagerName, 'Team Lead');
+      expect(fromMap.monthlySalary, 80000);
+      expect(fromMap.isOnboardingComplete, isFalse);
     });
   });
 
@@ -279,6 +360,8 @@ void main() {
       expect(fromMap.formattedClockIn, '09:02 AM');
       expect(fromMap.formattedClockOut, '05:05 PM');
       expect(fromMap.formattedWorkingDuration, '8h 03m');
+      expect(fromMap.formattedClockInWithSeconds, '09:02:00 AM');
+      expect(fromMap.breaks, isEmpty);
     });
 
     test('Attendance state and working duration formatting', () {
@@ -303,6 +386,57 @@ void main() {
       expect(attLate.formattedClockOut, '—');
     });
 
+    test('Breaks pause net working time and format seconds', () {
+      final clockInTime = DateTime(2026, 9, 16, 9, 0, 0);
+      final lunchStart = DateTime(2026, 9, 16, 13, 0, 0);
+      final lunchEnd = DateTime(2026, 9, 16, 13, 45, 12);
+      final now = DateTime(2026, 9, 16, 14, 0, 5);
+
+      final att = Attendance(
+        id: 'user3_2026-09-16',
+        uid: 'user3',
+        companyId: 'comp1',
+        employeeId: 'EMP-003',
+        employeeName: 'Abhishikth',
+        date: '2026-09-16',
+        clockIn: clockInTime,
+        clockOut: null,
+        status: 'PRESENT',
+        breaks: [
+          AttendanceBreak(
+            id: 'LUNCH_1',
+            type: 'LUNCH',
+            start: lunchStart,
+            end: lunchEnd,
+          ),
+        ],
+      );
+
+      expect(att.isOnBreak, isFalse);
+      expect(att.liveWorkedLabel(now), '4h 14m 53s');
+      expect(att.liveBreakLabel(now), '45m 12s');
+
+      final onLunch = att.copyWith(
+        breaks: [
+          AttendanceBreak(
+            id: 'LUNCH_2',
+            type: 'LUNCH',
+            start: lunchStart,
+          ),
+        ],
+      );
+      expect(onLunch.isOnBreak, isTrue);
+      expect(onLunch.activeBreak?.label, 'Lunch');
+      expect(onLunch.liveWorkedLabel(now), '4h 00m 00s');
+      expect(onLunch.liveBreakLabel(now), '1h 00m 05s');
+
+      final map = att.toMap();
+      final fromMap = Attendance.fromMap(map, docId: att.id);
+      expect(fromMap.breaks, hasLength(1));
+      expect(fromMap.breaks.first.type, 'LUNCH');
+      expect(fromMap.breaks.first.end, isNotNull);
+    });
+
     test('Date key formatter utility', () {
       final date = DateTime(2026, 9, 15);
       expect(Attendance.formatDateKey(date), '2026-09-15');
@@ -318,6 +452,9 @@ void main() {
         createdBy: 'user_123',
         adminEmail: 'admin@dentassuretech.com',
         adminName: 'Vikram Malhotra',
+        phone: '+91 9876543210',
+        address: '101 Cyber City, Hyderabad',
+        industry: 'Dental & Healthcare Services',
         status: 'ACTIVE',
         createdAt: now,
       );
@@ -328,6 +465,9 @@ void main() {
       expect(map['createdBy'], 'user_123');
       expect(map['adminEmail'], 'admin@dentassuretech.com');
       expect(map['adminName'], 'Vikram Malhotra');
+      expect(map['phone'], '+91 9876543210');
+      expect(map['address'], '101 Cyber City, Hyderabad');
+      expect(map['industry'], 'Dental & Healthcare Services');
       expect(map['status'], 'ACTIVE');
       expect(map['createdAt'], isA<Timestamp>());
 
@@ -337,7 +477,16 @@ void main() {
       expect(fromMap.createdBy, 'user_123');
       expect(fromMap.adminEmail, 'admin@dentassuretech.com');
       expect(fromMap.adminName, 'Vikram Malhotra');
+      expect(fromMap.phone, '+91 9876543210');
+      expect(fromMap.address, '101 Cyber City, Hyderabad');
+      expect(fromMap.industry, 'Dental & Healthcare Services');
       expect(fromMap.status, 'ACTIVE');
+      expect(fromMap.isActive, isTrue);
+      expect(fromMap.isSuspended, isFalse);
+
+      final suspended = fromMap.copyWith(status: 'SUSPENDED');
+      expect(suspended.isActive, isFalse);
+      expect(suspended.isSuspended, isTrue);
     });
   });
 
@@ -374,6 +523,90 @@ void main() {
         AuthErrorHandler.getErrorMessage('Custom error message'),
         'Custom error message',
       );
+    });
+  });
+
+  group('TeamScope', () {
+    test('Direct and skip-level reports', () {
+      final manager = UserProfile(
+        uid: 'm1',
+        companyId: 'c1',
+        name: 'Manager',
+        email: 'm@c1.com',
+        role: 'MANAGER',
+      );
+      final lead = UserProfile(
+        uid: 'l1',
+        companyId: 'c1',
+        name: 'Lead',
+        email: 'l@c1.com',
+        role: 'TEAM_LEAD',
+        reportingManagerUid: 'm1',
+      );
+      final emp = UserProfile(
+        uid: 'e1',
+        companyId: 'c1',
+        name: 'Engineer',
+        email: 'e@c1.com',
+        role: 'EMPLOYEE',
+        reportingManagerUid: 'l1',
+      );
+      final outsider = UserProfile(
+        uid: 'e2',
+        companyId: 'c1',
+        name: 'Other',
+        email: 'o@c1.com',
+        role: 'EMPLOYEE',
+        reportingManagerUid: 'someone-else',
+      );
+      final all = [manager, lead, emp, outsider];
+
+      final leadTeam = TeamScope.reportsFor(lead, all);
+      expect(leadTeam.map((u) => u.uid), ['e1']);
+
+      final managerTeam = TeamScope.reportsFor(manager, all);
+      expect(managerTeam.map((u) => u.uid).toSet(), {'l1', 'e1'});
+      expect(managerTeam.map((u) => u.uid), isNot(contains('e2')));
+    });
+  });
+
+  group('Timesheet and Payslip models', () {
+    test('TimesheetEntry serialization', () {
+      final entry = TimesheetEntry(
+        id: 'ts1',
+        companyId: 'c1',
+        uid: 'u1',
+        employeeName: 'Dev',
+        reportingManagerUid: 'lead1',
+        date: '2026-09-16',
+        project: 'Dentassure',
+        task: 'Role dashboards',
+        hours: 6.5,
+        billable: true,
+      );
+      final map = entry.toMap();
+      expect(map['project'], 'Dentassure');
+      expect(map['hours'], 6.5);
+      final fromMap = TimesheetEntry.fromMap(map, docId: 'ts1');
+      expect(fromMap.isPending, isTrue);
+      expect(fromMap.hours, 6.5);
+      expect(fromMap.reportingManagerUid, 'lead1');
+    });
+
+    test('Payslip.fromSalary breakdown', () {
+      final slip = Payslip.fromSalary(
+        id: 'u1_2026-09',
+        companyId: 'c1',
+        uid: 'u1',
+        employeeName: 'Dev',
+        month: '2026-09',
+        monthlySalary: 100000,
+      );
+      expect(slip.basic, 50000);
+      expect(slip.hra, 20000);
+      expect(slip.allowances, 30000);
+      expect(slip.deductions, 6000);
+      expect(slip.netPay, 94000);
     });
   });
 }

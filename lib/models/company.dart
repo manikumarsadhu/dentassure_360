@@ -6,8 +6,12 @@ class Company {
   final String createdBy;
   final String adminEmail;
   final String adminName;
+  final String phone;
+  final String address;
+  final String industry;
   final String status;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Company({
     required this.id,
@@ -15,9 +19,16 @@ class Company {
     required this.createdBy,
     this.adminEmail = '',
     this.adminName = '',
+    this.phone = '',
+    this.address = '',
+    this.industry = 'General & Dental Healthcare',
     this.status = 'ACTIVE',
     this.createdAt,
+    this.updatedAt,
   });
+
+  bool get isActive => status.toUpperCase() == 'ACTIVE';
+  bool get isSuspended => status.toUpperCase() == 'SUSPENDED';
 
   Map<String, dynamic> toMap() {
     return {
@@ -26,19 +37,25 @@ class Company {
       'createdBy': createdBy,
       'adminEmail': adminEmail,
       'adminName': adminName,
+      'phone': phone,
+      'address': address,
+      'industry': industry,
       'status': status,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
           : FieldValue.serverTimestamp(),
     };
   }
 
   factory Company.fromMap(Map<String, dynamic> map, {String? docId}) {
-    DateTime? parsedCreatedAt;
-    if (map['createdAt'] is Timestamp) {
-      parsedCreatedAt = (map['createdAt'] as Timestamp).toDate();
-    } else if (map['createdAt'] is String) {
-      parsedCreatedAt = DateTime.tryParse(map['createdAt']);
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.tryParse(val);
+      return null;
     }
 
     return Company(
@@ -47,8 +64,12 @@ class Company {
       createdBy: map['createdBy'] ?? '',
       adminEmail: map['adminEmail'] ?? '',
       adminName: map['adminName'] ?? '',
+      phone: map['phone'] ?? '',
+      address: map['address'] ?? '',
+      industry: map['industry'] ?? 'General & Dental Healthcare',
       status: map['status'] ?? 'ACTIVE',
-      createdAt: parsedCreatedAt,
+      createdAt: parseDate(map['createdAt']),
+      updatedAt: parseDate(map['updatedAt']),
     );
   }
 
@@ -58,8 +79,12 @@ class Company {
     String? createdBy,
     String? adminEmail,
     String? adminName,
+    String? phone,
+    String? address,
+    String? industry,
     String? status,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Company(
       id: id ?? this.id,
@@ -67,8 +92,12 @@ class Company {
       createdBy: createdBy ?? this.createdBy,
       adminEmail: adminEmail ?? this.adminEmail,
       adminName: adminName ?? this.adminName,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      industry: industry ?? this.industry,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
