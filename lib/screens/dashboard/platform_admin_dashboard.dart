@@ -5,7 +5,10 @@ import '../../models/company.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/app_logo.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/platform_suite_art.dart';
+import '../../theme/app_motion.dart';
 import '../company/create_company_screen.dart';
 import '../platform_admin/company_detail_screen.dart';
 import '../platform_admin/edit_company_screen.dart';
@@ -17,14 +20,10 @@ import '../profile/my_profile_screen.dart';
 class PlatformAdminDashboard extends StatefulWidget {
   final UserProfile userProfile;
 
-  const PlatformAdminDashboard({
-    super.key,
-    required this.userProfile,
-  });
+  const PlatformAdminDashboard({super.key, required this.userProfile});
 
   @override
-  State<PlatformAdminDashboard> createState() =>
-      _PlatformAdminDashboardState();
+  State<PlatformAdminDashboard> createState() => _PlatformAdminDashboardState();
 }
 
 class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
@@ -56,9 +55,7 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
             child: const Text('Sign Out'),
           ),
         ],
@@ -74,9 +71,7 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CreateCompanyScreen(
-          platformAdmin: widget.userProfile,
-        ),
+        builder: (_) => CreateCompanyScreen(platformAdmin: widget.userProfile),
       ),
     );
   }
@@ -85,9 +80,7 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlatformUsersScreen(
-          platformAdmin: widget.userProfile,
-        ),
+        builder: (_) => PlatformUsersScreen(platformAdmin: widget.userProfile),
       ),
     );
   }
@@ -96,9 +89,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlatformAnalyticsScreen(
-          platformAdmin: widget.userProfile,
-        ),
+        builder: (_) =>
+            PlatformAnalyticsScreen(platformAdmin: widget.userProfile),
       ),
     );
   }
@@ -107,9 +99,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlatformAuditLogsScreen(
-          platformAdmin: widget.userProfile,
-        ),
+        builder: (_) =>
+            PlatformAuditLogsScreen(platformAdmin: widget.userProfile),
       ),
     );
   }
@@ -148,8 +139,9 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  isCurrentlyActive ? Colors.red.shade600 : Colors.green.shade700,
+              backgroundColor: isCurrentlyActive
+                  ? Colors.red.shade600
+                  : Colors.green.shade700,
             ),
             child: Text(actionText),
           ),
@@ -169,8 +161,9 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
             content: Text(
               'Company "${company.name}" is now marked as $targetStatus.',
             ),
-            backgroundColor:
-                isCurrentlyActive ? Colors.orange.shade800 : Colors.green,
+            backgroundColor: isCurrentlyActive
+                ? Colors.orange.shade800
+                : Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -246,18 +239,31 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                const Text(
-                  'Platform Admin Portal',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Super Admin Multi-Tenant Hub',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+                const AppHeaderLogo(height: 36, maxWidth: 158),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Platform Admin',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Multi-tenant hub',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -308,10 +314,12 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
               builder: (context, companiesSnapshot) {
                 final companies = companiesSnapshot.data ?? [];
                 final totalCompanies = companies.length;
-                final activeCompanies =
-                    companies.where((c) => c.status == 'ACTIVE').length;
-                final suspendedCompanies =
-                    companies.where((c) => c.status == 'SUSPENDED').length;
+                final activeCompanies = companies
+                    .where((c) => c.status == 'ACTIVE')
+                    .length;
+                final suspendedCompanies = companies
+                    .where((c) => c.status == 'SUSPENDED')
+                    .length;
 
                 return StreamBuilder<List<UserProfile>>(
                   stream: _firestoreService.streamAllPlatformUsers(),
@@ -320,18 +328,22 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                     final totalUsers = allUsers.length;
 
                     return StreamBuilder<List<Attendance>>(
-                      stream: _firestoreService
-                          .streamAllAttendanceForDate(todayKey),
+                      stream: _firestoreService.streamAllAttendanceForDate(
+                        todayKey,
+                      ),
                       builder: (context, attSnapshot) {
                         final todayAttendance = attSnapshot.data ?? [];
                         final activeWorkingCount = todayAttendance
-                            .where((a) => a.clockIn != null && a.clockOut == null)
+                            .where(
+                              (a) => a.clockIn != null && a.clockOut == null,
+                            )
                             .length;
 
                         // Filtered companies
                         final filteredCompanies = companies.where((comp) {
                           final query = _searchQuery.toLowerCase();
-                          final matchesSearch = query.isEmpty ||
+                          final matchesSearch =
+                              query.isEmpty ||
                               comp.name.toLowerCase().contains(query) ||
                               comp.id.toLowerCase().contains(query) ||
                               comp.adminEmail.toLowerCase().contains(query) ||
@@ -340,7 +352,7 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
 
                           final matchesStatus =
                               _selectedStatusFilter == 'ALL' ||
-                                  comp.status == _selectedStatusFilter;
+                              comp.status == _selectedStatusFilter;
 
                           return matchesSearch && matchesStatus;
                         }).toList();
@@ -414,15 +426,16 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                                   Container(
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
                                                     decoration: BoxDecoration(
                                                       color:
                                                           Colors.amber.shade700,
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                              12),
+                                                            12,
+                                                          ),
                                                     ),
                                                     child: const Text(
                                                       'SUPER ADMIN',
@@ -442,7 +455,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                                       fontSize: 11,
                                                       fontWeight:
                                                           FontWeight.w600,
-                                                      color: Colors.amber.shade300,
+                                                      color:
+                                                          Colors.amber.shade300,
                                                     ),
                                                   ),
                                                 ],
@@ -467,8 +481,9 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                       value: '$totalCompanies',
                                       subtitle: '$activeCompanies Active',
                                       color: Colors.indigo,
-                                      onTap: () => setState(() =>
-                                          _selectedStatusFilter = 'ALL'),
+                                      onTap: () => setState(
+                                        () => _selectedStatusFilter = 'ALL',
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -505,8 +520,10 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                       value: '$suspendedCompanies',
                                       subtitle: 'Restricted Orgs',
                                       color: Colors.red,
-                                      onTap: () => setState(() =>
-                                          _selectedStatusFilter = 'SUSPENDED'),
+                                      onTap: () => setState(
+                                        () =>
+                                            _selectedStatusFilter = 'SUSPENDED',
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -521,43 +538,49 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              GridView.count(
-                                crossAxisCount: 2,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 2.1,
-                                children: [
-                                  _PlatformActionTile(
-                                    title: 'Onboard Company',
-                                    subtitle: 'Create tenant & admin',
-                                    icon: Icons.add_business_rounded,
-                                    color: Colors.indigo,
-                                    onTap: _openCreateCompany,
-                                  ),
-                                  _PlatformActionTile(
-                                    title: 'Global Directory',
-                                    subtitle: '$totalUsers total users',
-                                    icon: Icons.badge_outlined,
-                                    color: Colors.blue,
-                                    onTap: _openGlobalUsers,
-                                  ),
-                                  _PlatformActionTile(
-                                    title: 'System Analytics',
-                                    subtitle: 'Multi-tenant metrics',
-                                    icon: Icons.query_stats_rounded,
-                                    color: Colors.teal,
-                                    onTap: _openAnalytics,
-                                  ),
-                                  _PlatformActionTile(
-                                    title: 'Audit & Security',
-                                    subtitle: 'System activity logs',
-                                    icon: Icons.verified_user_outlined,
-                                    color: Colors.purple,
-                                    onTap: _openAuditLogs,
-                                  ),
-                                ],
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final wide = constraints.maxWidth >= 720;
+                                  return GridView.count(
+                                    crossAxisCount: wide ? 2 : 1,
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: wide ? 1.42 : 1.18,
+                                    children: [
+                                      _PlatformActionTile(
+                                        title: 'Onboard Company',
+                                        subtitle: 'Create tenant & admin',
+                                        kind: PlatformSuiteKind.onboard,
+                                        color: Colors.indigo,
+                                        onTap: _openCreateCompany,
+                                      ),
+                                      _PlatformActionTile(
+                                        title: 'Global Directory',
+                                        subtitle: '$totalUsers total users',
+                                        kind: PlatformSuiteKind.directory,
+                                        color: Colors.blue,
+                                        onTap: _openGlobalUsers,
+                                      ),
+                                      _PlatformActionTile(
+                                        title: 'System Analytics',
+                                        subtitle: 'Multi-tenant metrics',
+                                        kind: PlatformSuiteKind.analytics,
+                                        color: Colors.teal,
+                                        onTap: _openAnalytics,
+                                      ),
+                                      _PlatformActionTile(
+                                        title: 'Audit & Security',
+                                        subtitle: 'System activity logs',
+                                        kind: PlatformSuiteKind.audit,
+                                        color: Colors.purple,
+                                        onTap: _openAuditLogs,
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                               const SizedBox(height: 28),
 
@@ -568,9 +591,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                 children: [
                                   Text(
                                     'Registered Organizations',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   Text(
                                     '${filteredCompanies.length} Organizations',
@@ -586,8 +608,7 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                               TextField(
                                 controller: _searchController,
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Search by organization, admin, industry, or ID...',
+                                  hintText: 'Search by organization, admin, industry, or ID...',
                                   prefixIcon: const Icon(Icons.search_rounded),
                                   suffixIcon: _searchQuery.isNotEmpty
                                       ? IconButton(
@@ -604,7 +625,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                   filled: true,
                                   fillColor: Colors.grey.shade50,
                                   contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
+                                    horizontal: 16,
+                                  ),
                                 ),
                                 onChanged: (val) {
                                   setState(() => _searchQuery = val.trim());
@@ -617,13 +639,20 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
                                   children: [
-                                    _buildFilterChip('ALL', 'All ($totalCompanies)'),
+                                    _buildFilterChip(
+                                      'ALL',
+                                      'All ($totalCompanies)',
+                                    ),
                                     const SizedBox(width: 8),
                                     _buildFilterChip(
-                                        'ACTIVE', 'Active ($activeCompanies)'),
+                                      'ACTIVE',
+                                      'Active ($activeCompanies)',
+                                    ),
                                     const SizedBox(width: 8),
-                                    _buildFilterChip('SUSPENDED',
-                                        'Suspended ($suspendedCompanies)'),
+                                    _buildFilterChip(
+                                      'SUSPENDED',
+                                      'Suspended ($suspendedCompanies)',
+                                    ),
                                   ],
                                 ),
                               ),
@@ -634,7 +663,8 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                 Center(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 36.0),
+                                      vertical: 36.0,
+                                    ),
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -662,9 +692,11 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                                 Colors.indigo.shade800,
                                           ),
                                           icon: const Icon(
-                                              Icons.add_business_rounded),
+                                            Icons.add_business_rounded,
+                                          ),
                                           label: const Text(
-                                              'Onboard First Company'),
+                                            'Onboard First Company',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -694,8 +726,9 @@ class _PlatformAdminDashboardState extends State<PlatformAdminDashboard> {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) =>
-                                                EditCompanyScreen(company: comp),
+                                            builder: (_) => EditCompanyScreen(
+                                              company: comp,
+                                            ),
                                           ),
                                         );
                                       },
@@ -795,10 +828,7 @@ class _MetricCard extends StatelessWidget {
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: color.shade700,
-                    ),
+                    style: TextStyle(fontSize: 10, color: color.shade700),
                   ),
                 ],
               ),
@@ -810,67 +840,90 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _PlatformActionTile extends StatelessWidget {
+class _PlatformActionTile extends StatefulWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final PlatformSuiteKind kind;
   final MaterialColor color;
   final VoidCallback onTap;
 
   const _PlatformActionTile({
     required this.title,
     required this.subtitle,
-    required this.icon,
+    required this.kind,
     required this.color,
     required this.onTap,
   });
 
   @override
+  State<_PlatformActionTile> createState() => _PlatformActionTileState();
+}
+
+class _PlatformActionTileState extends State<_PlatformActionTile> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.shade50,
-                child: Icon(icon, color: color.shade800, size: 18),
+    final color = widget.color;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedScale(
+        scale: _hovered ? 1.02 : 1,
+        duration: const Duration(milliseconds: 180),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [color.shade100, color.shade50, Colors.white],
+                ),
+                border: Border.all(
+                  color: _hovered ? color.shade300 : color.shade100,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: _hovered ? 0.22 : 0.1),
+                    blurRadius: _hovered ? 18 : 10,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: PlatformSuiteArt(
+                        kind: widget.kind,
+                        color: color.shade700,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 8),
                     Text(
-                      subtitle,
+                      widget.title,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: color.shade900,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(fontSize: 12, color: color.shade700),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -899,185 +952,195 @@ class _CompanyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = company.status == 'ACTIVE';
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor:
-                        isActive ? Colors.indigo.shade50 : Colors.red.shade50,
-                    child: Icon(
-                      Icons.apartment_rounded,
-                      color: isActive
-                          ? Colors.indigo.shade700
-                          : Colors.red.shade700,
+    return MotionCard(
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: isActive
+                          ? Colors.indigo.shade50
+                          : Colors.red.shade50,
+                      child: Icon(
+                        Icons.apartment_rounded,
+                        color: isActive
+                            ? Colors.indigo.shade700
+                            : Colors.red.shade700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          company.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            company.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          company.industry,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        if (company.adminName.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
-                            'Admin: ${company.adminName} (${company.adminEmail})',
+                            company.industry,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: Colors.grey.shade600,
                             ),
                           ),
+                          if (company.adminName.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Admin: ${company.adminName} (${company.adminEmail})',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
                         ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (val) {
+                        if (val == 'details') onTap();
+                        if (val == 'edit') onEdit();
+                        if (val == 'toggle') onToggleStatus();
+                        if (val == 'delete') onDelete();
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'details',
+                          child: Row(
+                            children: [
+                              Icon(Icons.visibility_outlined, size: 18),
+                              SizedBox(width: 8),
+                              Text('View Staff & Logs'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit Details'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(
+                            children: [
+                              Icon(
+                                isActive
+                                    ? Icons.pause_circle_outline_rounded
+                                    : Icons.play_circle_outline_rounded,
+                                size: 18,
+                                color: isActive ? Colors.orange : Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(isActive ? 'Suspend' : 'Activate'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (val) {
-                      if (val == 'details') onTap();
-                      if (val == 'edit') onEdit();
-                      if (val == 'toggle') onToggleStatus();
-                      if (val == 'delete') onDelete();
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'details',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility_outlined, size: 18),
-                            SizedBox(width: 8),
-                            Text('View Staff & Logs'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, size: 18),
-                            SizedBox(width: 8),
-                            Text('Edit Details'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Row(
-                          children: [
-                            Icon(
-                              isActive
-                                  ? Icons.pause_circle_outline_rounded
-                                  : Icons.play_circle_outline_rounded,
-                              size: 18,
-                              color: isActive ? Colors.orange : Colors.green,
+                  ],
+                ),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? Colors.green.shade50
+                                : Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isActive
+                                  ? Colors.green.shade200
+                                  : Colors.red.shade200,
                             ),
-                            const SizedBox(width: 8),
-                            Text(isActive ? 'Suspend' : 'Activate'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline_rounded,
-                                size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? Colors.green.shade50
-                              : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isActive
-                                ? Colors.green.shade200
-                                : Colors.red.shade200,
+                          ),
+                          child: Text(
+                            company.status,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isActive
+                                  ? Colors.green.shade800
+                                  : Colors.red.shade800,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          company.status,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isActive
-                                ? Colors.green.shade800
-                                : Colors.red.shade800,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$employeeCount Staff',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: onTap,
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                      label: const Text(
+                        'Manage Tenant',
+                        style: TextStyle(fontSize: 12),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$employeeCount Staff',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                    label: const Text('Manage Tenant',
-                        style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
-            ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -4,6 +4,7 @@ import '../../models/performance_goal.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/team_scope.dart';
+import '../../theme/app_motion.dart';
 
 class PerformanceScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -43,7 +44,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                         child: Text('${widget.viewer.name} (me)'),
                       ),
                       ...people.map(
-                        (u) => DropdownMenuItem(value: u.uid, child: Text(u.name)),
+                        (u) =>
+                            DropdownMenuItem(value: u.uid, child: Text(u.name)),
                       ),
                     ],
                     onChanged: (v) => setDialog(() => uid = v ?? uid),
@@ -79,7 +81,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
 
     if (saved != true || title.text.trim().isEmpty) return;
-    final subject = people.where((u) => u.uid == uid).firstOrNull ?? widget.viewer;
+    final subject =
+        people.where((u) => u.uid == uid).firstOrNull ?? widget.viewer;
     await _firestore.savePerformanceGoal(
       PerformanceGoal(
         id: '',
@@ -108,7 +111,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           builder: (context, snapshot) {
             var goals = snapshot.data ?? [];
             if (widget.viewer.isManager && !widget.viewer.isPeopleOps) {
-              final allowed = team.map((u) => u.uid).toSet()..add(widget.viewer.uid);
+              final allowed = team.map((u) => u.uid).toSet()
+                ..add(widget.viewer.uid);
               goals = goals.where((g) => allowed.contains(g.uid)).toList();
             }
             return Scaffold(
@@ -122,9 +126,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 children: [
                   Text(
                     'Performance',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   if (goals.isEmpty)
@@ -133,15 +136,20 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                       child: Text('No goals yet for this cycle.'),
                     )
                   else
-                    ...goals.map((goal) => Card(
+                    ...goals.map(
+                      (goal) => MotionCard(
+                        child: Card(
                           child: ListTile(
                             title: Text('${goal.employeeName} • ${goal.title}'),
                             subtitle: Text(
                               '${goal.cycle} • ${goal.status}${goal.rating > 0 ? " • Rating ${goal.rating}/5" : ""}',
                             ),
-                            trailing: widget.viewer.isTeamApprover && goal.isOpen
+                            trailing:
+                                widget.viewer.isTeamApprover && goal.isOpen
                                 ? IconButton(
-                                    icon: const Icon(Icons.rate_review_outlined),
+                                    icon: const Icon(
+                                      Icons.rate_review_outlined,
+                                    ),
                                     onPressed: () async {
                                       await _firestore.savePerformanceGoal(
                                         PerformanceGoal(
@@ -165,7 +173,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                                   )
                                 : Chip(label: Text(goal.status)),
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );

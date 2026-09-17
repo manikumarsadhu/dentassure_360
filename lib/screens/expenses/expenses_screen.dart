@@ -6,6 +6,7 @@ import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
 import '../../utils/team_scope.dart';
+import '../../theme/app_motion.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -54,7 +55,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   items: const [
                     DropdownMenuItem(value: 'Travel', child: Text('Travel')),
                     DropdownMenuItem(value: 'Meals', child: Text('Meals')),
-                    DropdownMenuItem(value: 'Software', child: Text('Software')),
+                    DropdownMenuItem(
+                      value: 'Software',
+                      child: Text('Software'),
+                    ),
                     DropdownMenuItem(value: 'General', child: Text('General')),
                   ],
                   onChanged: (v) => setDialog(() => category = v ?? category),
@@ -70,7 +74,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     setDialog(() {});
                   },
                   icon: const Icon(Icons.attach_file),
-                  label: Text(receipt.isEmpty ? 'Attach receipt' : 'Receipt attached'),
+                  label: Text(
+                    receipt.isEmpty ? 'Attach receipt' : 'Receipt attached',
+                  ),
                 ),
               ],
             ),
@@ -114,7 +120,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return StreamBuilder<List<UserProfile>>(
       stream: _firestore.streamCompanyEmployees(widget.viewer.companyId),
       builder: (context, usersSnap) {
-        final allowed = TeamScope.reportUids(widget.viewer, usersSnap.data ?? []);
+        final allowed = TeamScope.reportUids(
+          widget.viewer,
+          usersSnap.data ?? [],
+        );
         return StreamBuilder<List<ExpenseClaim>>(
           stream: widget.personalOnly
               ? _firestore.streamEmployeeExpenses(widget.viewer.uid)
@@ -123,15 +132,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             var claims = snapshot.data ?? [];
             if (!widget.personalOnly && !widget.viewer.isPeopleOps) {
               claims = claims
-                  .where((e) =>
-                      e.uid == widget.viewer.uid || allowed.contains(e.uid))
+                  .where(
+                    (e) =>
+                        e.uid == widget.viewer.uid || allowed.contains(e.uid),
+                  )
                   .toList();
             }
             return Scaffold(
               appBar: AppBar(
-                title: Text(
-                  widget.personalOnly ? 'My Expenses' : 'Expenses',
-                ),
+                title: Text(widget.personalOnly ? 'My Expenses' : 'Expenses'),
               ),
               floatingActionButton: FloatingActionButton.extended(
                 onPressed: _submitClaim,
@@ -147,13 +156,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       child: Text('No expense claims yet.'),
                     )
                   else
-                    ...claims.map((claim) => Card(
+                    ...claims.map(
+                      (claim) => MotionCard(
+                        child: Card(
                           child: ListTile(
-                            title: Text('${claim.title} • ₹${claim.amount.toStringAsFixed(0)}'),
+                            title: Text(
+                              '${claim.title} • ₹${claim.amount.toStringAsFixed(0)}',
+                            ),
                             subtitle: Text(
                               '${claim.employeeName} • ${claim.category} • ${claim.date} • ${claim.status}',
                             ),
-                            trailing: claim.isPending &&
+                            trailing:
+                                claim.isPending &&
                                     widget.viewer.isTeamApprover &&
                                     claim.uid != widget.viewer.uid
                                 ? Row(
@@ -161,27 +175,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.close),
-                                        onPressed: () => _firestore.reviewExpense(
-                                          id: claim.id,
-                                          status: 'REJECTED',
-                                          reviewedBy: widget.viewer.uid,
-                                          reviewedByName: widget.viewer.name,
-                                        ),
+                                        onPressed: () =>
+                                            _firestore.reviewExpense(
+                                              id: claim.id,
+                                              status: 'REJECTED',
+                                              reviewedBy: widget.viewer.uid,
+                                              reviewedByName:
+                                                  widget.viewer.name,
+                                            ),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.check),
-                                        onPressed: () => _firestore.reviewExpense(
-                                          id: claim.id,
-                                          status: 'APPROVED',
-                                          reviewedBy: widget.viewer.uid,
-                                          reviewedByName: widget.viewer.name,
-                                        ),
+                                        onPressed: () =>
+                                            _firestore.reviewExpense(
+                                              id: claim.id,
+                                              status: 'APPROVED',
+                                              reviewedBy: widget.viewer.uid,
+                                              reviewedByName:
+                                                  widget.viewer.name,
+                                            ),
                                       ),
                                     ],
                                   )
                                 : Chip(label: Text(claim.status)),
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );

@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../models/company.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/office_timings_fields.dart';
 
 class EditCompanyScreen extends StatefulWidget {
   final Company company;
 
-  const EditCompanyScreen({
-    super.key,
-    required this.company,
-  });
+  const EditCompanyScreen({super.key, required this.company});
 
   @override
   State<EditCompanyScreen> createState() => _EditCompanyScreenState();
@@ -39,6 +37,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
 
   late String _selectedIndustry;
   late String _selectedStatus;
+  late OfficeTimingsValue _timings;
   bool _saving = false;
 
   @override
@@ -54,8 +53,15 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     _selectedIndustry = _industries.contains(c.industry)
         ? c.industry
         : _industries.first;
-    _selectedStatus =
-        _statuses.contains(c.status) ? c.status : 'ACTIVE';
+    _selectedStatus = _statuses.contains(c.status) ? c.status : 'ACTIVE';
+    _timings = OfficeTimingsValue(
+      timezone: c.timezone,
+      workDays: c.workDays,
+      fullDayHours: c.fullDayHours,
+      halfDayHours: c.halfDayHours,
+      dayShift: c.dayShift,
+      nightShift: c.nightShift,
+    );
   }
 
   @override
@@ -83,6 +89,12 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
         address: _addressController.text.trim(),
         industry: _selectedIndustry,
         status: _selectedStatus,
+        timezone: _timings.timezone,
+        workDays: _timings.workDays,
+        fullDayHours: _timings.fullDayHours,
+        halfDayHours: _timings.halfDayHours,
+        dayShift: _timings.dayShift,
+        nightShift: _timings.nightShift,
         updatedAt: DateTime.now(),
       );
 
@@ -153,12 +165,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
             children: [
               // Company ID Banner (Read-only)
               Card(
-                elevation: 0,
                 color: Colors.grey.shade100,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
@@ -228,10 +235,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: _industries.map((ind) {
-                  return DropdownMenuItem(
-                    value: ind,
-                    child: Text(ind),
-                  );
+                  return DropdownMenuItem(value: ind, child: Text(ind));
                 }).toList(),
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedIndustry = val);
@@ -288,6 +292,18 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
               ),
               const SizedBox(height: 24),
 
+              _SectionHeader(
+                title: 'Office timings & hours',
+                icon: Icons.schedule_rounded,
+                color: Colors.teal,
+              ),
+              const SizedBox(height: 12),
+              OfficeTimingsFields(
+                value: _timings,
+                onChanged: (next) => setState(() => _timings = next),
+              ),
+              const SizedBox(height: 24),
+
               // SECTION 3: Operational Status
               _SectionHeader(
                 title: 'Operational Status',
@@ -307,8 +323,11 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                     value: 'ACTIVE',
                     child: Row(
                       children: [
-                        Icon(Icons.check_circle_rounded,
-                            color: Colors.green.shade600, size: 18),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green.shade600,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         const Text('ACTIVE - Operational & Accessible'),
                       ],
@@ -318,8 +337,11 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                     value: 'SUSPENDED',
                     child: Row(
                       children: [
-                        Icon(Icons.pause_circle_rounded,
-                            color: Colors.red.shade600, size: 18),
+                        Icon(
+                          Icons.pause_circle_rounded,
+                          color: Colors.red.shade600,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         const Text('SUSPENDED - Temporarily Blocked'),
                       ],

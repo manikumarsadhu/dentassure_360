@@ -5,6 +5,7 @@ import '../../models/timesheet_entry.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/team_scope.dart';
+import '../../theme/app_motion.dart';
 
 class TimesheetScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -110,8 +111,10 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
             var entries = snapshot.data ?? [];
             if (!widget.personalOnly && !widget.viewer.isPeopleOps) {
               entries = entries
-                  .where((e) =>
-                      e.uid == widget.viewer.uid || allowed.contains(e.uid))
+                  .where(
+                    (e) =>
+                        e.uid == widget.viewer.uid || allowed.contains(e.uid),
+                  )
                   .toList();
             }
             return Scaffold(
@@ -134,7 +137,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                       child: Text('No timesheet entries yet.'),
                     )
                   else
-                    ...entries.map((entry) => Card(
+                    ...entries.map(
+                      (entry) => MotionCard(
+                        child: Card(
                           child: ListTile(
                             title: Text(
                               '${entry.employeeName} • ${entry.project}',
@@ -142,7 +147,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                             subtitle: Text(
                               '${entry.date} • ${entry.hours}h • ${entry.billable ? "Billable" : "Non-billable"} • ${entry.status}',
                             ),
-                            trailing: entry.isPending &&
+                            trailing:
+                                entry.isPending &&
                                     !widget.personalOnly &&
                                     widget.viewer.isTeamApprover &&
                                     entry.uid != widget.viewer.uid
@@ -153,27 +159,31 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                                         icon: const Icon(Icons.close),
                                         onPressed: () =>
                                             _firestore.reviewTimesheet(
-                                          id: entry.id,
-                                          status: 'REJECTED',
-                                          reviewedBy: widget.viewer.uid,
-                                          reviewedByName: widget.viewer.name,
-                                        ),
+                                              id: entry.id,
+                                              status: 'REJECTED',
+                                              reviewedBy: widget.viewer.uid,
+                                              reviewedByName:
+                                                  widget.viewer.name,
+                                            ),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.check),
                                         onPressed: () =>
                                             _firestore.reviewTimesheet(
-                                          id: entry.id,
-                                          status: 'APPROVED',
-                                          reviewedBy: widget.viewer.uid,
-                                          reviewedByName: widget.viewer.name,
-                                        ),
+                                              id: entry.id,
+                                              status: 'APPROVED',
+                                              reviewedBy: widget.viewer.uid,
+                                              reviewedByName:
+                                                  widget.viewer.name,
+                                            ),
                                       ),
                                     ],
                                   )
                                 : Chip(label: Text(entry.status)),
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );

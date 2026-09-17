@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'punch_capture.dart';
+
 class AttendanceBreak {
   final String id;
   final String type; // LUNCH, OTHER
@@ -78,6 +80,13 @@ class Attendance {
   final String status; // PRESENT, LATE, HALF_DAY, ABSENT
   final int workingMinutes;
   final List<AttendanceBreak> breaks;
+  final PunchCapture? clockInCapture;
+  final PunchCapture? clockOutCapture;
+  final int expectedMinutes;
+  final int overtimeMinutes;
+  final int shortfallMinutes;
+  final String workMode;
+  final String shiftType;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -95,6 +104,13 @@ class Attendance {
     this.status = 'PRESENT',
     this.workingMinutes = 0,
     this.breaks = const [],
+    this.clockInCapture,
+    this.clockOutCapture,
+    this.expectedMinutes = 0,
+    this.overtimeMinutes = 0,
+    this.shortfallMinutes = 0,
+    this.workMode = 'OFFICE',
+    this.shiftType = 'DAY',
     this.createdAt,
     this.updatedAt,
   });
@@ -133,6 +149,12 @@ class Attendance {
     final net = total - breaksTotal;
     return net.isNegative ? Duration.zero : net;
   }
+
+  String get formattedExpectedDuration =>
+      formatDuration(Duration(minutes: expectedMinutes));
+
+  String get formattedOvertimeDuration =>
+      formatDuration(Duration(minutes: overtimeMinutes));
 
   /// Formatted working duration like "8h 03m"
   String get formattedWorkingDuration {
@@ -225,6 +247,13 @@ class Attendance {
       'status': status,
       'workingMinutes': workingMinutes,
       'breaks': breaks.map((b) => b.toMap()).toList(),
+      'clockInCapture': clockInCapture?.toMap(),
+      'clockOutCapture': clockOutCapture?.toMap(),
+      'expectedMinutes': expectedMinutes,
+      'overtimeMinutes': overtimeMinutes,
+      'shortfallMinutes': shortfallMinutes,
+      'workMode': workMode,
+      'shiftType': shiftType,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -270,6 +299,13 @@ class Attendance {
       status: map['status'] ?? 'PRESENT',
       workingMinutes: (map['workingMinutes'] as num?)?.toInt() ?? 0,
       breaks: parsedBreaks,
+      clockInCapture: PunchCapture.tryParse(map['clockInCapture']),
+      clockOutCapture: PunchCapture.tryParse(map['clockOutCapture']),
+      expectedMinutes: (map['expectedMinutes'] as num?)?.toInt() ?? 0,
+      overtimeMinutes: (map['overtimeMinutes'] as num?)?.toInt() ?? 0,
+      shortfallMinutes: (map['shortfallMinutes'] as num?)?.toInt() ?? 0,
+      workMode: (map['workMode'] ?? 'OFFICE').toString(),
+      shiftType: (map['shiftType'] ?? 'DAY').toString(),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
     );
@@ -289,6 +325,13 @@ class Attendance {
     String? status,
     int? workingMinutes,
     List<AttendanceBreak>? breaks,
+    PunchCapture? clockInCapture,
+    PunchCapture? clockOutCapture,
+    int? expectedMinutes,
+    int? overtimeMinutes,
+    int? shortfallMinutes,
+    String? workMode,
+    String? shiftType,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -306,6 +349,13 @@ class Attendance {
       status: status ?? this.status,
       workingMinutes: workingMinutes ?? this.workingMinutes,
       breaks: breaks ?? this.breaks,
+      clockInCapture: clockInCapture ?? this.clockInCapture,
+      clockOutCapture: clockOutCapture ?? this.clockOutCapture,
+      expectedMinutes: expectedMinutes ?? this.expectedMinutes,
+      overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
+      shortfallMinutes: shortfallMinutes ?? this.shortfallMinutes,
+      workMode: workMode ?? this.workMode,
+      shiftType: shiftType ?? this.shiftType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

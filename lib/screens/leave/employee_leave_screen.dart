@@ -5,14 +5,12 @@ import '../../models/leave_request.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import 'apply_leave_screen.dart';
+import '../../theme/app_motion.dart';
 
 class EmployeeLeaveScreen extends StatefulWidget {
   final UserProfile employee;
 
-  const EmployeeLeaveScreen({
-    super.key,
-    required this.employee,
-  });
+  const EmployeeLeaveScreen({super.key, required this.employee});
 
   @override
   State<EmployeeLeaveScreen> createState() => _EmployeeLeaveScreenState();
@@ -79,9 +77,7 @@ class _EmployeeLeaveScreenState extends State<EmployeeLeaveScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Leave Management'),
-      ),
+      appBar: AppBar(title: const Text('My Leave Management')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           // Open Apply Leave
@@ -91,8 +87,9 @@ class _EmployeeLeaveScreenState extends State<EmployeeLeaveScreen> {
         label: const Text('Apply Leave'),
       ),
       body: StreamBuilder<List<LeaveRequest>>(
-        stream:
-            _firestoreService.streamEmployeeLeaveRequests(widget.employee.uid),
+        stream: _firestoreService.streamEmployeeLeaveRequests(
+          widget.employee.uid,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -232,25 +229,25 @@ class _EmployeeLeaveScreenState extends State<EmployeeLeaveScreen> {
                         ),
                       )
                     : filteredRequests.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No leave requests matching "$_selectedFilter"',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-                            itemCount: filteredRequests.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final req = filteredRequests[index];
-                              return _LeaveRequestCard(
-                                request: req,
-                                onCancel: () => _cancelRequest(req),
-                              );
-                            },
-                          ),
+                    ? Center(
+                        child: Text(
+                          'No leave requests matching "$_selectedFilter"',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                        itemCount: filteredRequests.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final req = filteredRequests[index];
+                          return _LeaveRequestCard(
+                            request: req,
+                            onCancel: () => _cancelRequest(req),
+                          );
+                        },
+                      ),
               ),
             ],
           );
@@ -344,10 +341,7 @@ class _LeaveRequestCard extends StatelessWidget {
   final LeaveRequest request;
   final VoidCallback onCancel;
 
-  const _LeaveRequestCard({
-    required this.request,
-    required this.onCancel,
-  });
+  const _LeaveRequestCard({required this.request, required this.onCancel});
 
   Color _getStatusColor() {
     switch (request.status.toUpperCase()) {
@@ -368,135 +362,136 @@ class _LeaveRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Row: Type and Status Badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        request.displayLeaveType,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
+    return MotionCard(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Type and Status Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          request.displayLeaveType,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${request.totalDays} ${request.totalDays == 1 ? "day" : "days"}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${request.totalDays} ${request.totalDays == 1 ? "day" : "days"}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
+                    child: Text(
+                      request.status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Date Range
+              Row(
+                children: [
+                  const Icon(Icons.date_range, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(
+                    request.formattedDateRange,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Reason Text
+              Text(
+                request.reason,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+              ),
+
+              // Reviewer comments if reviewed
+              if (request.reviewComment != null &&
+                  request.reviewComment!.isNotEmpty) ...[
+                const SizedBox(height: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    request.status,
+                    'Remark by ${request.reviewedByName ?? "Admin"}: "${request.reviewComment}"',
                     style: TextStyle(
-                      color: statusColor,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey.shade800,
                     ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
 
-            // Date Range
-            Row(
-              children: [
-                const Icon(Icons.date_range, size: 16, color: Colors.grey),
-                const SizedBox(width: 6),
-                Text(
-                  request.formattedDateRange,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+              // Cancel button if pending
+              if (request.isPending) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.cancel_outlined, size: 16),
+                    label: const Text('Cancel Request'),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-
-            // Reason Text
-            Text(
-              request.reason,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade800,
-              ),
-            ),
-
-            // Reviewer comments if reviewed
-            if (request.reviewComment != null &&
-                request.reviewComment!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'Remark by ${request.reviewedByName ?? "Admin"}: "${request.reviewComment}"',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-              ),
             ],
-
-            // Cancel button if pending
-            if (request.isPending) ...[
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  onPressed: onCancel,
-                  icon: const Icon(Icons.cancel_outlined, size: 16),
-                  label: const Text('Cancel Request'),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

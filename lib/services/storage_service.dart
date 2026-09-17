@@ -5,6 +5,22 @@ import 'package:image_picker/image_picker.dart';
 class StorageService {
   final ImagePicker _picker = ImagePicker();
 
+  /// Front-camera selfie used for verified clock-in / clock-out.
+  Future<XFile?> captureFaceSelfie() async {
+    try {
+      return await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        maxWidth: 640,
+        maxHeight: 640,
+        imageQuality: 72,
+      );
+    } catch (e) {
+      debugPrint('[StorageService] captureFaceSelfie error: $e');
+      throw Exception('Could not open the camera: $e');
+    }
+  }
+
   /// Prompts the user to select an image from their local system (PC file dialog / gallery / camera).
   Future<XFile?> pickImage({ImageSource source = ImageSource.gallery}) async {
     try {

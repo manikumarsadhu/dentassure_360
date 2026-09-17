@@ -1,10 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../models/attendance.dart';
 import '../models/user_profile.dart';
 import '../services/firestore_service.dart';
+import '../theme/app_motion.dart';
+import 'live_now.dart';
+import 'verified_punch_sheet.dart';
 
 class ClockInCard extends StatefulWidget {
   final UserProfile user;
@@ -18,32 +19,21 @@ class ClockInCard extends StatefulWidget {
 class _ClockInCardState extends State<ClockInCard> {
   final _firestoreService = FirestoreService();
   bool _loading = false;
-  late Timer _timer;
-  DateTime _now = DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
 
   Future<void> _clockIn() async {
+    final capture = await showVerifiedPunchSheet(
+      context: context,
+      action: PunchAction.clockIn,
+      workMode: widget.user.workMode,
+    );
+    if (capture == null || !mounted) return;
     setState(() => _loading = true);
     try {
-      await _firestoreService.clockIn(user: widget.user);
+      await _firestoreService.clockIn(user: widget.user, capture: capture);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Clock-in failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Clock-in failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -51,17 +41,23 @@ class _ClockInCardState extends State<ClockInCard> {
   }
 
   Future<void> _clockOut(Attendance attendance) async {
+    final capture = await showVerifiedPunchSheet(
+      context: context,
+      action: PunchAction.clockOut,
+      workMode: widget.user.workMode,
+    );
+    if (capture == null || !mounted) return;
     setState(() => _loading = true);
     try {
       await _firestoreService.clockOut(
         attendanceId: attendance.id,
         clockInTime: attendance.clockIn ?? DateTime.now(),
+        capture: capture,
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Clock-out failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Clock-out failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -77,9 +73,8 @@ class _ClockInCardState extends State<ClockInCard> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not start break: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not start break: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -92,9 +87,8 @@ class _ClockInCardState extends State<ClockInCard> {
       await _firestoreService.endBreak(attendanceId: attendance.id);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not end break: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not end break: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -103,127 +97,154 @@ class _ClockInCardState extends State<ClockInCard> {
 
   @override
   Widget build(BuildContext context) {
-    final todayKey = Attendance.formatDateKey(DateTime.now());
     return StreamBuilder<Attendance?>(
-      stream: _firestoreService.streamTodayAttendance(
-        uid: widget.user.uid,
-        date: todayKey,
-      ),
+      stream: _firestoreService.streamCurrentShiftAttendance(user: widget.user),
       builder: (context, snapshot) {
         final att = snapshot.data;
         final clockedIn = att?.isClockedIn == true;
         final onBreak = att?.isOnBreak == true;
-        return Card(
-          elevation: 0,
-          color: onBreak
-              ? Colors.amber.shade50
-              : clockedIn
+        return FadeSlideIn(
+          child: PressableScale(
+            child: Card(
+              elevation: 0,
+              color: onBreak
+                  ? Colors.amber.shade50
+                  : clockedIn
                   ? Colors.green.shade50
                   : Colors.blue.shade50,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: onBreak
-                  ? Colors.amber.shade200
-                  : clockedIn
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: onBreak
+                      ? Colors.amber.shade200
+                      : clockedIn
                       ? Colors.green.shade200
                       : Colors.blue.shade200,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      onBreak
-                          ? Icons.free_breakfast_outlined
-                          : clockedIn
+                    Row(
+                      children: [
+                        Icon(
+                          onBreak
+                              ? Icons.free_breakfast_outlined
+                              : clockedIn
                               ? Icons.timer_outlined
                               : Icons.login_rounded,
-                      color: onBreak
-                          ? Colors.amber.shade800
-                          : clockedIn
+                          color: onBreak
+                              ? Colors.amber.shade800
+                              : clockedIn
                               ? Colors.green.shade800
                               : Colors.blue.shade800,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            clockedIn
-                                ? onBreak
-                                    ? 'On ${att!.activeBreak!.label} break · ${att.liveBreakLabel(_now)}'
-                                    : 'Worked ${att!.liveWorkedLabel(_now)} · in at ${att.formattedClockInWithSeconds}'
-                                : att?.isCompleted == true
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              LiveClockText(
+                                format: (now) => clockedIn
+                                    ? onBreak
+                                          ? 'On ${att!.activeBreak!.label} break · ${att.liveBreakLabel(now)}'
+                                          : 'Worked ${att!.liveWorkedLabel(now)} · in at ${att.formattedClockInWithSeconds}'
+                                    : att?.isCompleted == true
                                     ? 'Shift complete • ${att?.liveWorkedLabel(att.clockOut)}'
                                     : 'You have not clocked in yet',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                att?.status ?? 'ABSENT',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              if (att != null && att.expectedMinutes > 0)
+                                Text(
+                                  'Expected ${att.formattedExpectedDuration}'
+                                  '${att.overtimeMinutes > 0 ? ' · OT ${att.formattedOvertimeDuration}' : ''}'
+                                  '${att.shortfallMinutes > 0 ? ' · short ${Attendance.formatDuration(Duration(minutes: att.shortfallMinutes))}' : ''}'
+                                  ' · ${widget.user.workMode}/${widget.user.shiftType}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                            ],
                           ),
-                          Text(
-                            att?.status ?? 'ABSENT',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: _loading
-                          ? null
-                          : clockedIn
+                        ),
+                        FilledButton(
+                          onPressed: _loading
+                              ? null
+                              : clockedIn
                               ? () => _clockOut(att!)
                               : att?.isCompleted == true
-                                  ? null
-                                  : _clockIn,
-                      child: Text(
-                        clockedIn
-                            ? 'Clock Out'
-                            : att?.isCompleted == true
+                              ? null
+                              : _clockIn,
+                          child: Text(
+                            clockedIn
+                                ? 'Clock Out'
+                                : att?.isCompleted == true
                                 ? 'Done'
                                 : 'Clock In',
-                      ),
-                    ),
-                  ],
-                ),
-                if (clockedIn) ...[
-                  const SizedBox(height: 12),
-                  if (onBreak)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: OutlinedButton.icon(
-                        onPressed: _loading ? null : () => _endBreak(att!),
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text('End ${att!.activeBreak!.label} & resume'),
-                      ),
-                    )
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed:
-                              _loading ? null : () => _startBreak(att!, 'LUNCH'),
-                          icon: const Icon(Icons.restaurant_rounded, size: 18),
-                          label: const Text('Lunch break'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed:
-                              _loading ? null : () => _startBreak(att!, 'OTHER'),
-                          icon: const Icon(Icons.coffee_rounded, size: 18),
-                          label: const Text('Other break'),
+                          ),
                         ),
                       ],
                     ),
-                ],
-              ],
+                    if (att?.clockInCapture != null ||
+                        att?.clockOutCapture != null)
+                      PunchProofRow(
+                        clockIn: att?.clockInCapture,
+                        clockOut: att?.clockOutCapture,
+                        compact: true,
+                      ),
+                    if (clockedIn) ...[
+                      const SizedBox(height: 12),
+                      if (onBreak)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _loading ? null : () => _endBreak(att!),
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: Text(
+                              'End ${att!.activeBreak!.label} & resume',
+                            ),
+                          ),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _loading
+                                  ? null
+                                  : () => _startBreak(att!, 'LUNCH'),
+                              icon: const Icon(
+                                Icons.restaurant_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Lunch break'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _loading
+                                  ? null
+                                  : () => _startBreak(att!, 'OTHER'),
+                              icon: const Icon(Icons.coffee_rounded, size: 18),
+                              label: const Text('Other break'),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         );

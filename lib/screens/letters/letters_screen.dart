@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
+import '../../theme/app_motion.dart';
 
 class LettersScreen extends StatelessWidget {
   final UserProfile viewer;
@@ -14,9 +15,8 @@ class LettersScreen extends StatelessWidget {
       children: [
         Text(
           'Letters & Documents',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -29,12 +29,14 @@ class LettersScreen extends StatelessWidget {
           'Increment letter',
           'Warning letter',
         ].map(
-          (title) => Card(
-            child: ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(title),
-              subtitle: const Text('Template ready — e-sign coming later'),
-              trailing: const Chip(label: Text('Soon')),
+          (title) => MotionCard(
+            child: Card(
+              child: ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(title),
+                subtitle: const Text('Template ready — e-sign coming later'),
+                trailing: const Chip(label: Text('Soon')),
+              ),
             ),
           ),
         ),

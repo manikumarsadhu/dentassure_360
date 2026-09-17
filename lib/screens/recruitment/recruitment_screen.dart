@@ -4,6 +4,7 @@ import '../../models/recruitment_candidate.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../employee/add_employee_screen.dart';
+import '../../theme/app_motion.dart';
 
 class RecruitmentScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -88,9 +89,8 @@ class _RecruitmentScreenState extends State<RecruitmentScreen> {
             children: [
               Text(
                 'Recruitment & ATS',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               if (candidates.isEmpty)
@@ -99,14 +99,19 @@ class _RecruitmentScreenState extends State<RecruitmentScreen> {
                   child: Text('No candidates in the pipeline.'),
                 )
               else
-                ...candidates.map((c) => Card(
+                ...candidates.map(
+                  (c) => MotionCard(
+                    child: Card(
                       child: ListTile(
                         title: Text(c.name),
                         subtitle: Text('${c.email} • ${c.role}'),
                         trailing: DropdownButton<String>(
                           value: c.stage,
                           items: stages
-                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
                               .toList(),
                           onChanged: widget.viewer.isPeopleOps
                               ? (stage) async {
@@ -137,7 +142,9 @@ class _RecruitmentScreenState extends State<RecruitmentScreen> {
                               : null,
                         ),
                       ),
-                    )),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

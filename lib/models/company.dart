@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'shift_policy.dart';
+
 class Company {
   final String id;
   final String name;
@@ -10,6 +12,12 @@ class Company {
   final String address;
   final String industry;
   final String status;
+  final String timezone;
+  final List<int> workDays;
+  final double fullDayHours;
+  final double halfDayHours;
+  final ShiftTemplate dayShift;
+  final ShiftTemplate nightShift;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -23,12 +31,20 @@ class Company {
     this.address = '',
     this.industry = 'General & Dental Healthcare',
     this.status = 'ACTIVE',
+    this.timezone = 'Asia/Kolkata',
+    this.workDays = const [1, 2, 3, 4, 5],
+    this.fullDayHours = 8,
+    this.halfDayHours = 4,
+    this.dayShift = ShiftTemplate.dayDefault,
+    this.nightShift = ShiftTemplate.nightDefault,
     this.createdAt,
     this.updatedAt,
   });
 
   bool get isActive => status.toUpperCase() == 'ACTIVE';
   bool get isSuspended => status.toUpperCase() == 'SUSPENDED';
+  int get fullDayMinutes => (fullDayHours * 60).round();
+  int get halfDayMinutes => (halfDayHours * 60).round();
 
   Map<String, dynamic> toMap() {
     return {
@@ -41,6 +57,12 @@ class Company {
       'address': address,
       'industry': industry,
       'status': status,
+      'timezone': timezone,
+      'workDays': workDays,
+      'fullDayHours': fullDayHours,
+      'halfDayHours': halfDayHours,
+      'dayShift': dayShift.toMap(),
+      'nightShift': nightShift.toMap(),
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -58,6 +80,14 @@ class Company {
       return null;
     }
 
+    final rawDays = map['workDays'];
+    final days = <int>[];
+    if (rawDays is List) {
+      for (final item in rawDays) {
+        if (item is num) days.add(item.toInt());
+      }
+    }
+
     return Company(
       id: docId ?? map['id'] ?? '',
       name: map['name'] ?? '',
@@ -68,6 +98,13 @@ class Company {
       address: map['address'] ?? '',
       industry: map['industry'] ?? 'General & Dental Healthcare',
       status: map['status'] ?? 'ACTIVE',
+      timezone: (map['timezone'] ?? 'Asia/Kolkata').toString(),
+      workDays: days.isEmpty ? const [1, 2, 3, 4, 5] : days,
+      fullDayHours: (map['fullDayHours'] as num?)?.toDouble() ?? 8,
+      halfDayHours: (map['halfDayHours'] as num?)?.toDouble() ?? 4,
+      dayShift: ShiftTemplate.fromMap(map['dayShift'], ShiftTemplate.dayDefault),
+      nightShift:
+          ShiftTemplate.fromMap(map['nightShift'], ShiftTemplate.nightDefault),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
     );
@@ -83,6 +120,12 @@ class Company {
     String? address,
     String? industry,
     String? status,
+    String? timezone,
+    List<int>? workDays,
+    double? fullDayHours,
+    double? halfDayHours,
+    ShiftTemplate? dayShift,
+    ShiftTemplate? nightShift,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -96,6 +139,12 @@ class Company {
       address: address ?? this.address,
       industry: industry ?? this.industry,
       status: status ?? this.status,
+      timezone: timezone ?? this.timezone,
+      workDays: workDays ?? this.workDays,
+      fullDayHours: fullDayHours ?? this.fullDayHours,
+      halfDayHours: halfDayHours ?? this.halfDayHours,
+      dayShift: dayShift ?? this.dayShift,
+      nightShift: nightShift ?? this.nightShift,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

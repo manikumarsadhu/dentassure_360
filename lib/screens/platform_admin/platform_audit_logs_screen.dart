@@ -180,9 +180,7 @@ class _PlatformAuditLogsScreenState extends State<PlatformAuditLogsScreen> {
                           return Card(
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade200),
-                            ),
+                              borderRadius: BorderRadius.circular(12),                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Row(

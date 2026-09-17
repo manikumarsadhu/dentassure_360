@@ -5,6 +5,8 @@ import '../../models/leave_request.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/team_scope.dart';
+import '../../theme/app_motion.dart';
+import '../../widgets/verified_punch_sheet.dart';
 
 class AdminAttendanceScreen extends StatefulWidget {
   final UserProfile adminProfile;
@@ -76,7 +78,7 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
       'Thursday',
       'Friday',
       'Saturday',
-      'Sunday'
+      'Sunday',
     ];
     const months = [
       'Jan',
@@ -90,7 +92,7 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     final dayName = days[dt.weekday - 1];
     final monthName = months[dt.month - 1];
@@ -102,23 +104,27 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
     final theme = Theme.of(context);
     final dateKey = Attendance.formatDateKey(_selectedDate);
     final isToday = Attendance.formatDateKey(DateTime.now()) == dateKey;
-    final isYesterday = Attendance.formatDateKey(
-            DateTime.now().subtract(const Duration(days: 1))) ==
+    final isYesterday =
+        Attendance.formatDateKey(
+          DateTime.now().subtract(const Duration(days: 1)),
+        ) ==
         dateKey;
 
     return Scaffold(
       appBar: widget.embedded
           ? null
           : AppBar(
-        title: Text(widget.teamScoped ? 'Team Attendance' : 'Attendance Records'),
-        actions: [
-          IconButton(
-            tooltip: 'Select Date',
-            icon: const Icon(Icons.calendar_month_outlined),
-            onPressed: _pickDate,
-          ),
-        ],
-      ),
+              title: Text(
+                widget.teamScoped ? 'Team Attendance' : 'Attendance Records',
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Select Date',
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  onPressed: _pickDate,
+                ),
+              ],
+            ),
       body: StreamBuilder<List<UserProfile>>(
         stream: _firestoreService.streamCompanyEmployees(
           widget.adminProfile.companyId,
@@ -126,10 +132,13 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
         builder: (context, empSnapshot) {
           final allEmployees = widget.teamScoped
               ? TeamScope.reportsFor(
-                  widget.adminProfile, empSnapshot.data ?? [])
+                  widget.adminProfile,
+                  empSnapshot.data ?? [],
+                )
               : (empSnapshot.data ?? []);
-          final activeEmployees =
-              allEmployees.where((e) => e.isActive).toList();
+          final activeEmployees = allEmployees
+              .where((e) => e.isActive)
+              .toList();
 
           return StreamBuilder<List<Attendance>>(
             stream: _firestoreService.streamCompanyAttendanceByDate(
@@ -144,7 +153,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                 builder: (context, leaveSnapshot) {
                   if (empSnapshot.connectionState == ConnectionState.waiting &&
                       attSnapshot.connectionState == ConnectionState.waiting &&
-                      leaveSnapshot.connectionState == ConnectionState.waiting) {
+                      leaveSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
@@ -172,55 +182,69 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                     final leave = leaveMap[emp.uid];
 
                     if (att != null) {
-                      fullList.add(_EmployeeAttendanceStatus(
-                        employee: emp,
-                        attendance: att,
-                        leaveRequest: leave,
-                        status: att.status,
-                      ));
+                      fullList.add(
+                        _EmployeeAttendanceStatus(
+                          employee: emp,
+                          attendance: att,
+                          leaveRequest: leave,
+                          status: att.status,
+                        ),
+                      );
                     } else if (leave != null) {
                       // Legitimate approved leave -> On Leave (not Absent!)
-                      fullList.add(_EmployeeAttendanceStatus(
-                        employee: emp,
-                        attendance: null,
-                        leaveRequest: leave,
-                        status: 'LEAVE',
-                      ));
+                      fullList.add(
+                        _EmployeeAttendanceStatus(
+                          employee: emp,
+                          attendance: null,
+                          leaveRequest: leave,
+                          status: 'LEAVE',
+                        ),
+                      );
                     } else {
                       // No check-in and no approved leave => ABSENT
-                      fullList.add(_EmployeeAttendanceStatus(
-                        employee: emp,
-                        attendance: null,
-                        leaveRequest: null,
-                        status: 'ABSENT',
-                      ));
+                      fullList.add(
+                        _EmployeeAttendanceStatus(
+                          employee: emp,
+                          attendance: null,
+                          leaveRequest: null,
+                          status: 'ABSENT',
+                        ),
+                      );
                     }
                   }
 
                   // Compute Summary Metrics
                   final totalStaff = activeEmployees.length;
-                  final presentCount =
-                      fullList.where((i) => i.status == 'PRESENT').length;
-                  final lateCount =
-                      fullList.where((i) => i.status == 'LATE').length;
-                  final halfDayCount =
-                      fullList.where((i) => i.status == 'HALF_DAY').length;
-                  final leaveCount =
-                      fullList.where((i) => i.status == 'LEAVE').length;
-                  final absentCount =
-                      fullList.where((i) => i.status == 'ABSENT').length;
+                  final presentCount = fullList
+                      .where((i) => i.status == 'PRESENT')
+                      .length;
+                  final lateCount = fullList
+                      .where((i) => i.status == 'LATE')
+                      .length;
+                  final halfDayCount = fullList
+                      .where((i) => i.status == 'HALF_DAY')
+                      .length;
+                  final leaveCount = fullList
+                      .where((i) => i.status == 'LEAVE')
+                      .length;
+                  final absentCount = fullList
+                      .where((i) => i.status == 'ABSENT')
+                      .length;
 
                   // Apply Search & Filters
                   final filteredList = fullList.where((item) {
                     // Search filter
                     if (_searchQuery.isNotEmpty) {
                       final query = _searchQuery.toLowerCase();
-                      final matchName =
-                          item.employee.name.toLowerCase().contains(query);
-                      final matchId =
-                          item.employee.employeeId.toLowerCase().contains(query);
-                      final matchDept =
-                          item.employee.department.toLowerCase().contains(query);
+                      final matchName = item.employee.name
+                          .toLowerCase()
+                          .contains(query);
+                      final matchId = item.employee.employeeId
+                          .toLowerCase()
+                          .contains(query);
+                      final matchDept = item.employee.department
+                          .toLowerCase()
+                          .contains(query);
                       if (!matchName && !matchId && !matchDept) return false;
                     }
 
@@ -247,7 +271,9 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                       // Top Date Navigation & Presets
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         color: theme.colorScheme.surface,
                         child: Column(
                           children: [
@@ -259,9 +285,11 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.calendar_today,
-                                          size: 18,
-                                          color: theme.colorScheme.primary),
+                                      Icon(
+                                        Icons.calendar_today,
+                                        size: 18,
+                                        color: theme.colorScheme.primary,
+                                      ),
                                       const SizedBox(width: 8),
                                       Text(
                                         _formatDisplayDate(_selectedDate),
@@ -389,7 +417,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'ALL',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -397,7 +426,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'PRESENT',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -405,7 +435,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'LATE',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -413,7 +444,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'HALF_DAY',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -421,7 +453,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'LEAVE',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -429,20 +462,23 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'ABSENT',
                                     _selectedStatusFilter,
                                     (v) => setState(
-                                        () => _selectedStatusFilter = v),
+                                      () => _selectedStatusFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   Container(
-                                      height: 18,
-                                      width: 1,
-                                      color: Colors.grey.shade300),
+                                    height: 18,
+                                    width: 1,
+                                    color: Colors.grey.shade300,
+                                  ),
                                   const SizedBox(width: 12),
                                   _buildFilterChip(
                                     'All Depts',
                                     'ALL',
                                     _selectedDepartmentFilter,
                                     (v) => setState(
-                                        () => _selectedDepartmentFilter = v),
+                                      () => _selectedDepartmentFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -450,7 +486,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'Software Engineering',
                                     _selectedDepartmentFilter,
                                     (v) => setState(
-                                        () => _selectedDepartmentFilter = v),
+                                      () => _selectedDepartmentFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -458,7 +495,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'Product & UI/UX',
                                     _selectedDepartmentFilter,
                                     (v) => setState(
-                                        () => _selectedDepartmentFilter = v),
+                                      () => _selectedDepartmentFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -466,7 +504,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'DevOps & Cloud',
                                     _selectedDepartmentFilter,
                                     (v) => setState(
-                                        () => _selectedDepartmentFilter = v),
+                                      () => _selectedDepartmentFilter = v,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildFilterChip(
@@ -474,7 +513,8 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     'Quality Assurance (QA)',
                                     _selectedDepartmentFilter,
                                     (v) => setState(
-                                        () => _selectedDepartmentFilter = v),
+                                      () => _selectedDepartmentFilter = v,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -492,27 +532,29 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                   padding: const EdgeInsets.all(32.0),
                                   child: Text(
                                     'No active employees found in your company.',
-                                    style: TextStyle(color: Colors.grey.shade600),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
                                 ),
                               )
                             : filteredList.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No records matching search and filters.',
-                                      style: TextStyle(color: Colors.grey.shade600),
-                                    ),
-                                  )
-                                : ListView.separated(
-                                    padding: const EdgeInsets.all(16),
-                                    itemCount: filteredList.length,
-                                    separatorBuilder: (context, index) =>
-                                        const SizedBox(height: 8),
-                                    itemBuilder: (context, index) {
-                                      final item = filteredList[index];
-                                      return _AttendanceRecordCard(item: item);
-                                    },
-                                  ),
+                            ? Center(
+                                child: Text(
+                                  'No records matching search and filters.',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: filteredList.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) {
+                                  final item = filteredList[index];
+                                  return _AttendanceRecordCard(item: item);
+                                },
+                              ),
                       ),
                     ],
                   );
@@ -673,160 +715,175 @@ class _AttendanceRecordCard extends StatelessWidget {
     final leave = item.leaveRequest;
     final bool isOnLeave = item.status == 'LEAVE';
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: statusColor.withValues(alpha: 0.15),
-              child: Text(
-                emp.name.isNotEmpty ? emp.name[0].toUpperCase() : 'E',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: statusColor,
+    return MotionCard(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: statusColor.withValues(alpha: 0.15),
+                child: Text(
+                  emp.name.isNotEmpty ? emp.name[0].toUpperCase() : 'E',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-            // Name & Employee Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          emp.name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (emp.employeeId.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Text(
-                            emp.employeeId,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${emp.designation} • ${emp.department}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Timing / Leave Details
-                  if (att != null)
+              // Name & Employee Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
                       children: [
-                        Text(
-                          'In: ${att.formattedClockIn}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade800,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Out: ${att.formattedClockOut}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade800,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '(${att.formattedWorkingDuration})',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.blue.shade800,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  else if (isOnLeave && leave != null)
-                    Row(
-                      children: [
-                        Icon(Icons.beach_access, size: 14, color: Colors.teal.shade700),
-                        const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            'On ${leave.displayLeaveType} (${leave.formattedDateRange})',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.teal.shade800,
-                              fontWeight: FontWeight.w600,
+                            emp.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (emp.employeeId.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Text(
+                              emp.employeeId,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                       ],
-                    )
-                  else
-                    const Text(
-                      'No check-in record for this date',
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${emp.designation} • ${emp.department}',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.red,
-                        fontStyle: FontStyle.italic,
+                        color: Colors.grey.shade600,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
+                    const SizedBox(height: 4),
 
-            // Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                item.status,
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                    // Timing / Leave Details
+                    if (att != null) ...[
+                      Row(
+                        children: [
+                          Text(
+                            'In: ${att.formattedClockIn}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Out: ${att.formattedClockOut}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              '(${att.formattedWorkingDuration}'
+                              '${att.expectedMinutes > 0 ? ' / exp ${att.formattedExpectedDuration}' : ''}'
+                              '${att.overtimeMinutes > 0 ? ' · OT ${att.formattedOvertimeDuration}' : ''})',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.blue.shade800,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (att.clockInCapture != null ||
+                          att.clockOutCapture != null)
+                        PunchProofRow(
+                          clockIn: att.clockInCapture,
+                          clockOut: att.clockOutCapture,
+                          compact: true,
+                        ),
+                    ] else if (isOnLeave && leave != null)
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.beach_access,
+                            size: 14,
+                            color: Colors.teal.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'On ${leave.displayLeaveType} (${leave.formattedDateRange})',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.teal.shade800,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const Text(
+                        'No check-in record for this date',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  item.status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

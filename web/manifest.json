@@ -1,11 +1,11 @@
 {
-    "name": "dentassure_360",
-    "short_name": "dentassure_360",
+    "name": "Dentassure 360",
+    "short_name": "Dentassure 360",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F3F6FB",
+    "theme_color": "#1565D8",
+    "description": "Workforce HR platform for attendance, leave, people, and multi-company operations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

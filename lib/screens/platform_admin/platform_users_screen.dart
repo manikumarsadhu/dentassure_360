@@ -6,15 +6,13 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/auth_error_handler.dart';
 import '../../widgets/user_avatar.dart';
+import '../../theme/app_motion.dart';
 import '../employee/employee_detail_screen.dart';
 
 class PlatformUsersScreen extends StatefulWidget {
   final UserProfile platformAdmin;
 
-  const PlatformUsersScreen({
-    super.key,
-    required this.platformAdmin,
-  });
+  const PlatformUsersScreen({super.key, required this.platformAdmin});
 
   @override
   State<PlatformUsersScreen> createState() => _PlatformUsersScreenState();
@@ -95,11 +93,19 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFE0F2FE),
-                    child: Icon(Icons.person_pin_rounded, color: Color(0xFF0284C7)),
+                    child: Icon(
+                      Icons.person_pin_rounded,
+                      color: Color(0xFF0284C7),
+                    ),
                   ),
                   title: const Text('View Full Employee Record'),
-                  subtitle: const Text('Access complete profile & employment info'),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                  subtitle: const Text(
+                    'Access complete profile & employment info',
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                  ),
                   onTap: () {
                     Navigator.pop(modalCtx);
                     Navigator.push(
@@ -115,11 +121,19 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFF3E8FF),
-                    child: Icon(Icons.admin_panel_settings_rounded, color: Colors.purple),
+                    child: Icon(
+                      Icons.admin_panel_settings_rounded,
+                      color: Colors.purple,
+                    ),
                   ),
                   title: const Text('Change Role & Operational Status'),
-                  subtitle: Text('Current Role: ${user.role} • Status: ${user.status}'),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                  subtitle: Text(
+                    'Current Role: ${user.role} • Status: ${user.status}',
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                  ),
                   onTap: () {
                     Navigator.pop(modalCtx);
                     _showEditRoleDialog(user);
@@ -141,7 +155,9 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Password reset link sent to ${user.email}!'),
+                          content: Text(
+                            'Password reset link sent to ${user.email}!',
+                          ),
                           backgroundColor: Colors.green,
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -174,7 +190,9 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                     ),
                   ),
                   title: Text(
-                    user.isActive ? 'Suspend User Account' : 'Activate User Account',
+                    user.isActive
+                        ? 'Suspend User Account'
+                        : 'Activate User Account',
                     style: TextStyle(
                       color: user.isActive ? Colors.red : Colors.green.shade800,
                       fontWeight: FontWeight.bold,
@@ -195,9 +213,12 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('User account status updated to $newStatus.'),
-                        backgroundColor:
-                            user.isActive ? Colors.red.shade700 : Colors.green,
+                        content: Text(
+                          'User account status updated to $newStatus.',
+                        ),
+                        backgroundColor: user.isActive
+                            ? Colors.red.shade700
+                            : Colors.green,
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -237,18 +258,26 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                       ),
                       items: const [
                         DropdownMenuItem(
-                            value: 'EMPLOYEE', child: Text('EMPLOYEE')),
+                          value: 'EMPLOYEE',
+                          child: Text('EMPLOYEE'),
+                        ),
                         DropdownMenuItem(
-                            value: 'MANAGER', child: Text('MANAGER')),
+                          value: 'MANAGER',
+                          child: Text('MANAGER'),
+                        ),
                         DropdownMenuItem(
-                            value: 'TEAM_LEAD', child: Text('TEAM_LEAD')),
+                          value: 'TEAM_LEAD',
+                          child: Text('TEAM_LEAD'),
+                        ),
                         DropdownMenuItem(value: 'HR', child: Text('HR')),
                         DropdownMenuItem(
-                            value: 'COMPANY_ADMIN',
-                            child: Text('COMPANY_ADMIN')),
+                          value: 'COMPANY_ADMIN',
+                          child: Text('COMPANY_ADMIN'),
+                        ),
                         DropdownMenuItem(
-                            value: 'PLATFORM_ADMIN',
-                            child: Text('PLATFORM_ADMIN')),
+                          value: 'PLATFORM_ADMIN',
+                          child: Text('PLATFORM_ADMIN'),
+                        ),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -265,11 +294,17 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                       ),
                       items: const [
                         DropdownMenuItem(
-                            value: 'ACTIVE', child: Text('ACTIVE')),
+                          value: 'ACTIVE',
+                          child: Text('ACTIVE'),
+                        ),
                         DropdownMenuItem(
-                            value: 'SUSPENDED', child: Text('SUSPENDED')),
+                          value: 'SUSPENDED',
+                          child: Text('SUSPENDED'),
+                        ),
                         DropdownMenuItem(
-                            value: 'INACTIVE', child: Text('INACTIVE')),
+                          value: 'INACTIVE',
+                          child: Text('INACTIVE'),
+                        ),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -377,20 +412,24 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
             // Filtering
             final filteredUsers = allUsers.where((u) {
               final query = _searchQuery.toLowerCase();
-              final matchesSearch = query.isEmpty ||
+              final matchesSearch =
+                  query.isEmpty ||
                   u.name.toLowerCase().contains(query) ||
                   u.email.toLowerCase().contains(query) ||
                   u.employeeId.toLowerCase().contains(query) ||
                   u.companyName.toLowerCase().contains(query) ||
                   u.department.toLowerCase().contains(query);
 
-              final matchesRole = _selectedRole == 'ALL' ||
+              final matchesRole =
+                  _selectedRole == 'ALL' ||
                   u.role.toUpperCase() == _selectedRole.toUpperCase();
 
-              final matchesStatus = _selectedStatus == 'ALL' ||
+              final matchesStatus =
+                  _selectedStatus == 'ALL' ||
                   u.status.toUpperCase() == _selectedStatus.toUpperCase();
 
-              final matchesCompany = _selectedCompanyId == 'ALL' ||
+              final matchesCompany =
+                  _selectedCompanyId == 'ALL' ||
                   u.companyId == _selectedCompanyId;
 
               return matchesSearch &&
@@ -407,7 +446,9 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                     const Text(
                       'Global User Directory',
                       style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '${filteredUsers.length} of ${allUsers.length} total users',
@@ -447,8 +488,9 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                         ),
                         filled: true,
                         fillColor: Colors.grey.shade50,
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
                       ),
                       onChanged: (val) =>
                           setState(() => _searchQuery = val.trim()),
@@ -465,7 +507,9 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                         decoration: InputDecoration(
                           labelText: 'Filter by Organization',
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -475,10 +519,12 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                             value: 'ALL',
                             child: Text('All Organizations (Global)'),
                           ),
-                          ...companies.map((c) => DropdownMenuItem(
-                                value: c.id,
-                                child: Text(c.name),
-                              )),
+                          ...companies.map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            ),
+                          ),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -493,36 +539,60 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                   // Role Filter Chips
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 2,
+                    ),
                     child: Row(
                       children: [
-                        _buildFilterChip('ALL', 'All Roles', _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                        _buildFilterChip(
+                          'ALL',
+                          'All Roles',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
                         _buildFilterChip(
-                            'PLATFORM_ADMIN',
-                            'Platform Admins',
-                            _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                          'PLATFORM_ADMIN',
+                          'Platform Admins',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
                         _buildFilterChip(
-                            'COMPANY_ADMIN',
-                            'Company Admins',
-                            _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                          'COMPANY_ADMIN',
+                          'Company Admins',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
-                        _buildFilterChip('MANAGER', 'Managers', _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                        _buildFilterChip(
+                          'MANAGER',
+                          'Managers',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
-                        _buildFilterChip('TEAM_LEAD', 'Team Leads', _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                        _buildFilterChip(
+                          'TEAM_LEAD',
+                          'Team Leads',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
-                        _buildFilterChip('HR', 'HR', _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                        _buildFilterChip(
+                          'HR',
+                          'HR',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                         const SizedBox(width: 6),
-                        _buildFilterChip('EMPLOYEE', 'Employees', _selectedRole,
-                            (v) => setState(() => _selectedRole = v)),
+                        _buildFilterChip(
+                          'EMPLOYEE',
+                          'Employees',
+                          _selectedRole,
+                          (v) => setState(() => _selectedRole = v),
+                        ),
                       ],
                     ),
                   ),
@@ -536,8 +606,11 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.person_search_rounded,
-                                    size: 56, color: Colors.grey.shade400),
+                                Icon(
+                                  Icons.person_search_rounded,
+                                  size: 56,
+                                  color: Colors.grey.shade400,
+                                ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'No users found matching your filters.',
@@ -563,8 +636,7 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
                             ),
                           )
                         : ListView.separated(
-                            padding:
-                                const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                             itemCount: filteredUsers.length,
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 8),
@@ -586,8 +658,12 @@ class _PlatformUsersScreenState extends State<PlatformUsersScreen> {
     );
   }
 
-  Widget _buildFilterChip(String value, String label, String currentVal,
-      Function(String) onSelected) {
+  Widget _buildFilterChip(
+    String value,
+    String label,
+    String currentVal,
+    Function(String) onSelected,
+  ) {
     final isSelected = currentVal == value;
     return FilterChip(
       label: Text(label),
@@ -606,10 +682,7 @@ class _GlobalUserCard extends StatelessWidget {
   final UserProfile user;
   final VoidCallback onTap;
 
-  const _GlobalUserCard({
-    required this.user,
-    required this.onTap,
-  });
+  const _GlobalUserCard({required this.user, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -632,119 +705,124 @@ class _GlobalUserCard extends StatelessWidget {
       roleText = Colors.purple.shade800;
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              UserAvatar(
-                avatarUrl: user.avatarUrl,
-                name: user.name,
-                radius: 24,
-                backgroundColor: user.isActive
-                    ? Colors.blue.shade50
-                    : Colors.red.shade100,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return MotionCard(
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                UserAvatar(
+                  avatarUrl: user.avatarUrl,
+                  name: user.name,
+                  radius: 24,
+                  backgroundColor: user.isActive
+                      ? Colors.blue.shade50
+                      : Colors.red.shade100,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              user.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: roleBg,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              user.role,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: roleText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user.companyName.isNotEmpty
+                            ? '${user.companyName} • ${user.designation}'
+                            : 'Platform Console • ${user.designation}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        user.email,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            user.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: roleBg,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            user.role,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: roleText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      user.companyName.isNotEmpty
-                          ? '${user.companyName} • ${user.designation}'
-                          : 'Platform Console • ${user.designation}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      user.email,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
+                      decoration: BoxDecoration(
+                        color: user.isActive
+                            ? Colors.green.shade50
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: user.isActive
+                              ? Colors.green.shade200
+                              : Colors.red.shade200,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        user.status,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: user.isActive
+                              ? Colors.green.shade800
+                              : Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Icon(
+                      Icons.more_horiz_rounded,
+                      size: 20,
+                      color: Colors.grey,
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: user.isActive
-                          ? Colors.green.shade50
-                          : Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: user.isActive
-                            ? Colors.green.shade200
-                            : Colors.red.shade200,
-                      ),
-                    ),
-                    child: Text(
-                      user.status,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: user.isActive
-                            ? Colors.green.shade800
-                            : Colors.red.shade800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Icon(Icons.more_horiz_rounded, size: 20, color: Colors.grey),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

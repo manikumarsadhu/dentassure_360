@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../theme/app_motion.dart';
 
 class OnboardingScreen extends StatelessWidget {
   final UserProfile viewer;
@@ -22,9 +23,8 @@ class OnboardingScreen extends StatelessWidget {
           children: [
             Text(
               'Employee Onboarding',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -32,12 +32,16 @@ class OnboardingScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (people.isEmpty)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                ),
+              )
             else
-              ...people.map((emp) => Card(
+              ...people.map(
+                (emp) => MotionCard(
+                  child: Card(
                     child: ExpansionTile(
                       title: Text(emp.name),
                       subtitle: Text(
@@ -59,11 +63,11 @@ class OnboardingScreen extends StatelessWidget {
                           title: const Text('Documents collected'),
                           onChanged: viewer.isPeopleOps
                               ? (v) => firestore.updateOnboardingChecklist(
-                                    uid: emp.uid,
-                                    docsCollected: v ?? false,
-                                    assetsAssigned: emp.onboardingAssetsAssigned,
-                                    accessReady: emp.onboardingAccessReady,
-                                  )
+                                  uid: emp.uid,
+                                  docsCollected: v ?? false,
+                                  assetsAssigned: emp.onboardingAssetsAssigned,
+                                  accessReady: emp.onboardingAccessReady,
+                                )
                               : null,
                         ),
                         CheckboxListTile(
@@ -71,11 +75,11 @@ class OnboardingScreen extends StatelessWidget {
                           title: const Text('Assets assigned'),
                           onChanged: viewer.isPeopleOps
                               ? (v) => firestore.updateOnboardingChecklist(
-                                    uid: emp.uid,
-                                    docsCollected: emp.onboardingDocsCollected,
-                                    assetsAssigned: v ?? false,
-                                    accessReady: emp.onboardingAccessReady,
-                                  )
+                                  uid: emp.uid,
+                                  docsCollected: emp.onboardingDocsCollected,
+                                  assetsAssigned: v ?? false,
+                                  accessReady: emp.onboardingAccessReady,
+                                )
                               : null,
                         ),
                         CheckboxListTile(
@@ -83,16 +87,18 @@ class OnboardingScreen extends StatelessWidget {
                           title: const Text('Access ready'),
                           onChanged: viewer.isPeopleOps
                               ? (v) => firestore.updateOnboardingChecklist(
-                                    uid: emp.uid,
-                                    docsCollected: emp.onboardingDocsCollected,
-                                    assetsAssigned: emp.onboardingAssetsAssigned,
-                                    accessReady: v ?? false,
-                                  )
+                                  uid: emp.uid,
+                                  docsCollected: emp.onboardingDocsCollected,
+                                  assetsAssigned: emp.onboardingAssetsAssigned,
+                                  accessReady: v ?? false,
+                                )
                               : null,
                         ),
                       ],
                     ),
-                  )),
+                  ),
+                ),
+              ),
           ],
         );
       },

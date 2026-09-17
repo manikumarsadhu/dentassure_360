@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/company_asset.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../theme/app_motion.dart';
 
 class AssetsScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -53,9 +54,13 @@ class _AssetsScreenState extends State<AssetsScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: assignedUid,
                   items: [
-                    const DropdownMenuItem(value: '', child: Text('Unassigned')),
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('Unassigned'),
+                    ),
                     ...people.map(
-                      (u) => DropdownMenuItem(value: u.uid, child: Text(u.name)),
+                      (u) =>
+                          DropdownMenuItem(value: u.uid, child: Text(u.name)),
                     ),
                   ],
                   onChanged: (v) => setDialog(() => assignedUid = v ?? ''),
@@ -127,7 +132,9 @@ class _AssetsScreenState extends State<AssetsScreen> {
                       child: Text('No assets found.'),
                     )
                   else
-                    ...assets.map((asset) => Card(
+                    ...assets.map(
+                      (asset) => MotionCard(
+                        child: Card(
                           child: ListTile(
                             leading: const Icon(Icons.devices_other_outlined),
                             title: Text(asset.name),
@@ -136,7 +143,9 @@ class _AssetsScreenState extends State<AssetsScreen> {
                             ),
                             trailing: Chip(label: Text(asset.status)),
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );

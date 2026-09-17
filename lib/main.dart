@@ -4,19 +4,18 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'models/user_profile.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/employee_dashboard.dart';
 import 'screens/dashboard/platform_admin_dashboard.dart';
 import 'screens/dashboard/role_portal.dart';
+import 'screens/landing/landing_screen.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const Dentassure360App());
 }
@@ -29,13 +28,7 @@ class Dentassure360App extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Dentassure 360',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0066CC),
-          brightness: Brightness.light,
-        ),
-      ),
+      theme: AppTheme.light,
       home: const AuthGate(),
     );
   }
@@ -56,14 +49,16 @@ class AuthGate extends StatelessWidget {
       builder: (context, authSnapshot) {
         // Auth state is initializing
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingScreen(message: 'Initializing Dentassure 360...');
+          return const _LoadingScreen(
+            message: 'Initializing Dentassure 360...',
+          );
         }
 
         final user = authSnapshot.data;
 
-        // User is not signed in -> Directly show Login Screen
+        // User is not signed in -> marketing landing, then login
         if (user == null) {
-          return const LoginScreen();
+          return const PublicShell();
         }
 
         // User is authenticated -> Stream their Firestore UserProfile in real-time
@@ -140,10 +135,7 @@ class _LoadingScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               message,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
             ),
           ],
         ),

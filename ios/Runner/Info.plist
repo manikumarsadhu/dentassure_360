@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Dentassure 360 captures a live face photo when you clock in or out so attendance can be verified.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dentassure 360 uses your GPS location to record an accurate clock-in and clock-out.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dentassure 360 only uses the camera for attendance selfies. Photo library access is a system fallback.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

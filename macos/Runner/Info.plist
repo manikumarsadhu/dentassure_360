@@ -26,6 +26,10 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dentassure 360 captures a live face photo when you clock in or out so attendance can be verified.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dentassure 360 uses your GPS location to record an accurate clock-in and clock-out.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

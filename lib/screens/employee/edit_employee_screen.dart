@@ -56,6 +56,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   late String _selectedDepartment;
   late String _selectedRole;
   late String _selectedStatus;
+  late String _workMode;
+  late String _shiftType;
   late String _reportingManagerUid;
   late String _reportingManagerName;
   DateTime? _joiningDate;
@@ -79,6 +81,10 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         : _departments.first;
     _selectedRole = _roles.contains(emp.role) ? emp.role : 'EMPLOYEE';
     _selectedStatus = _statuses.contains(emp.status) ? emp.status : 'ACTIVE';
+    _workMode = ['OFFICE', 'HYBRID', 'WFH', 'FREELANCE'].contains(emp.workMode)
+        ? emp.workMode
+        : 'OFFICE';
+    _shiftType = emp.shiftType == 'NIGHT' ? 'NIGHT' : 'DAY';
     _reportingManagerUid = emp.reportingManagerUid;
     _reportingManagerName = emp.reportingManagerName;
     _joiningDate = emp.joiningDate ?? DateTime.now();
@@ -134,6 +140,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         reportingManagerUid: _reportingManagerUid,
         reportingManagerName: _reportingManagerName,
         monthlySalary: double.tryParse(_salaryController.text.trim()) ?? 0,
+        workMode: _workMode,
+        shiftType: _shiftType,
         joiningDate: _joiningDate,
         updatedAt: DateTime.now(),
       );
@@ -300,6 +308,42 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                         _selectedDepartment = val;
                       });
                     }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                DropdownButtonFormField<String>(
+                  initialValue: _workMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Work mode',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.home_work_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'OFFICE', child: Text('Office')),
+                    DropdownMenuItem(value: 'HYBRID', child: Text('Hybrid')),
+                    DropdownMenuItem(value: 'WFH', child: Text('Work from home')),
+                    DropdownMenuItem(value: 'FREELANCE', child: Text('Freelance')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _workMode = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                DropdownButtonFormField<String>(
+                  initialValue: _shiftType,
+                  decoration: const InputDecoration(
+                    labelText: 'Shift',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.nights_stay_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'DAY', child: Text('Day')),
+                    DropdownMenuItem(value: 'NIGHT', child: Text('Night')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _shiftType = val);
                   },
                 ),
                 const SizedBox(height: 16),

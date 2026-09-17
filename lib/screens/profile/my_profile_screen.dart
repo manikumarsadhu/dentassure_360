@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,10 +13,7 @@ import '../../widgets/user_avatar.dart';
 class MyProfileScreen extends StatefulWidget {
   final UserProfile userProfile;
 
-  const MyProfileScreen({
-    super.key,
-    required this.userProfile,
-  });
+  const MyProfileScreen({super.key, required this.userProfile});
 
   @override
   State<MyProfileScreen> createState() => _MyProfileScreenState();
@@ -55,23 +53,25 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
                     'Profile Photo Options',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const Divider(),
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFE8F0FE),
-                    child: Icon(Icons.upload_file_rounded, color: Color(0xFF0066CC)),
+                    child: Icon(
+                      Icons.upload_file_rounded,
+                      color: Color(0xFF0066CC),
+                    ),
                   ),
                   title: const Text(
                     'Upload from System',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: const Text('Choose JPG/PNG file from computer or gallery'),
+                  subtitle: const Text(
+                    'Choose JPG/PNG file from computer or gallery',
+                  ),
                   onTap: () {
                     Navigator.pop(bottomSheetContext);
                     _pickAndUploadFromSystem(profile);
@@ -96,7 +96,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ListTile(
                     leading: const CircleAvatar(
                       backgroundColor: Color(0xFFFFEBEE),
-                      child: Icon(Icons.delete_outline_rounded, color: Colors.red),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red,
+                      ),
                     ),
                     title: const Text(
                       'Remove Photo',
@@ -105,7 +108,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         color: Colors.red,
                       ),
                     ),
-                    subtitle: const Text('Revert back to default avatar initials'),
+                    subtitle: const Text(
+                      'Revert back to default avatar initials',
+                    ),
                     onTap: () {
                       Navigator.pop(bottomSheetContext);
                       _removeAvatar(profile);
@@ -122,7 +127,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   Future<void> _pickAndUploadFromSystem(UserProfile profile) async {
     setState(() => _uploadingAvatar = true);
     try {
-      final downloadUrl = await _storageService.pickAndUploadAvatar(profile.uid);
+      final downloadUrl = await _storageService.pickAndUploadAvatar(
+        profile.uid,
+      );
       if (downloadUrl != null && downloadUrl.isNotEmpty) {
         await _firestoreService.updateAvatarUrl(
           uid: profile.uid,
@@ -239,10 +246,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
   Future<void> _removeAvatar(UserProfile profile) async {
     try {
-      await _firestoreService.updateAvatarUrl(
-        uid: profile.uid,
-        avatarUrl: '',
-      );
+      await _firestoreService.updateAvatarUrl(uid: profile.uid, avatarUrl: '');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -459,7 +463,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             ),
                             onPressed: () {
                               setDialogState(
-                                  () => obscureConfirm = !obscureConfirm);
+                                () => obscureConfirm = !obscureConfirm,
+                              );
                             },
                           ),
                         ),
@@ -479,8 +484,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed:
-                      updating ? null : () => Navigator.pop(dialogContext),
+                  onPressed: updating
+                      ? null
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
@@ -569,7 +575,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out of Dentassure 360?'),
+        content: const Text(
+          'Are you sure you want to sign out of Dentassure 360?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -633,7 +641,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   elevation: 0,
                   color: profile.isPlatformAdmin
                       ? Colors.indigo.shade900
-                      : theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                      : theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.5,
+                        ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                     side: BorderSide(
@@ -644,7 +654,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 24),
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
                     child: Column(
                       children: [
                         // Stack for Avatar and Camera Badge
@@ -755,7 +767,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: profile.isPlatformAdmin
                                     ? Colors.amber.shade700
@@ -775,7 +789,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: profile.isActive
                                     ? Colors.green.shade600
@@ -823,7 +839,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: Column(
                     children: [
@@ -841,7 +856,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           icon: const Icon(Icons.copy_rounded, size: 16),
                           tooltip: 'Copy Email',
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: profile.email));
+                            Clipboard.setData(
+                              ClipboardData(text: profile.email),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Email copied to clipboard!'),
@@ -865,7 +882,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                                 tooltip: 'Copy Phone',
                                 onPressed: () {
                                   Clipboard.setData(
-                                      ClipboardData(text: profile.phone));
+                                    ClipboardData(text: profile.phone),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Phone number copied!'),
@@ -893,7 +911,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: Column(
                     children: [
@@ -915,7 +932,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             tooltip: 'Copy Company ID',
                             onPressed: () {
                               Clipboard.setData(
-                                  ClipboardData(text: profile.companyId));
+                                ClipboardData(text: profile.companyId),
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Company ID copied!'),
@@ -977,35 +995,50 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: Column(
                     children: [
                       ListTile(
                         leading: const CircleAvatar(
                           backgroundColor: Color(0xFFE0F2FE),
-                          child: Icon(Icons.key_rounded, color: Color(0xFF0284C7)),
+                          child: Icon(
+                            Icons.key_rounded,
+                            color: Color(0xFF0284C7),
+                          ),
                         ),
                         title: const Text(
                           'Change Password',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: const Text('Update your active account password'),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        subtitle: const Text(
+                          'Update your active account password',
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                        ),
                         onTap: () => _showChangePasswordDialog(profile),
                       ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const CircleAvatar(
                           backgroundColor: Color(0xFFF3E8FF),
-                          child: Icon(Icons.mark_email_read_rounded, color: Colors.purple),
+                          child: Icon(
+                            Icons.mark_email_read_rounded,
+                            color: Colors.purple,
+                          ),
                         ),
                         title: const Text(
                           'Send Password Reset Link',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text('Receive reset instructions at ${profile.email}'),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        subtitle: Text(
+                          'Receive reset instructions at ${profile.email}',
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                        ),
                         onTap: () => _sendPasswordResetEmail(profile),
                       ),
                     ],
@@ -1020,7 +1053,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: Colors.grey.shade300),
                         ),
                         onPressed: () => _showEditProfileDialog(profile),
                         icon: const Icon(Icons.edit_note_rounded),

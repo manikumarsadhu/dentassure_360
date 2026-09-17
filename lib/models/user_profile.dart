@@ -16,6 +16,8 @@ class UserProfile {
   final String reportingManagerUid;
   final String reportingManagerName;
   final double monthlySalary;
+  final String workMode;
+  final String shiftType;
   final bool onboardingDocsCollected;
   final bool onboardingAssetsAssigned;
   final bool onboardingAccessReady;
@@ -39,6 +41,8 @@ class UserProfile {
     this.reportingManagerUid = '',
     this.reportingManagerName = '',
     this.monthlySalary = 0,
+    this.workMode = 'OFFICE',
+    this.shiftType = 'DAY',
     this.onboardingDocsCollected = false,
     this.onboardingAssetsAssigned = false,
     this.onboardingAccessReady = false,
@@ -56,6 +60,11 @@ class UserProfile {
   bool get isTeamLead => role == 'TEAM_LEAD';
   bool get isPeopleOps => isCompanyAdmin || isHR || isPlatformAdmin;
   bool get isTeamApprover => isTeamLead || isManager || isPeopleOps;
+  bool get isWfh => workMode.toUpperCase() == 'WFH';
+  bool get isHybrid => workMode.toUpperCase() == 'HYBRID';
+  bool get isFreelance => workMode.toUpperCase() == 'FREELANCE';
+  bool get isOfficeWork => workMode.toUpperCase() == 'OFFICE' || isHybrid;
+  bool get isNightShift => shiftType.toUpperCase() == 'NIGHT';
 
   bool get isActive => status.toUpperCase() == 'ACTIVE';
   bool get isSuspended => status.toUpperCase() == 'SUSPENDED';
@@ -81,6 +90,8 @@ class UserProfile {
       'reportingManagerUid': reportingManagerUid,
       'reportingManagerName': reportingManagerName,
       'monthlySalary': monthlySalary,
+      'workMode': workMode,
+      'shiftType': shiftType,
       'onboardingDocsCollected': onboardingDocsCollected,
       'onboardingAssetsAssigned': onboardingAssetsAssigned,
       'onboardingAccessReady': onboardingAccessReady,
@@ -120,6 +131,8 @@ class UserProfile {
       reportingManagerUid: map['reportingManagerUid'] ?? '',
       reportingManagerName: map['reportingManagerName'] ?? '',
       monthlySalary: (map['monthlySalary'] as num?)?.toDouble() ?? 0,
+      workMode: (map['workMode'] ?? 'OFFICE').toString().toUpperCase(),
+      shiftType: (map['shiftType'] ?? 'DAY').toString().toUpperCase(),
       onboardingDocsCollected: map['onboardingDocsCollected'] == true,
       onboardingAssetsAssigned: map['onboardingAssetsAssigned'] == true,
       onboardingAccessReady: map['onboardingAccessReady'] == true,
@@ -145,6 +158,8 @@ class UserProfile {
     String? reportingManagerUid,
     String? reportingManagerName,
     double? monthlySalary,
+    String? workMode,
+    String? shiftType,
     bool? onboardingDocsCollected,
     bool? onboardingAssetsAssigned,
     bool? onboardingAccessReady,
@@ -168,6 +183,8 @@ class UserProfile {
       reportingManagerUid: reportingManagerUid ?? this.reportingManagerUid,
       reportingManagerName: reportingManagerName ?? this.reportingManagerName,
       monthlySalary: monthlySalary ?? this.monthlySalary,
+      workMode: workMode ?? this.workMode,
+      shiftType: shiftType ?? this.shiftType,
       onboardingDocsCollected:
           onboardingDocsCollected ?? this.onboardingDocsCollected,
       onboardingAssetsAssigned:

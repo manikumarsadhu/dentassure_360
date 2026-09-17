@@ -287,9 +287,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
+                    borderRadius: BorderRadius.circular(12),                  ),
                   child: Column(
                     children: [
                       _DetailTile(
@@ -311,6 +309,18 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       ),
                       const Divider(height: 1),
                       _DetailTile(
+                        label: 'Work mode',
+                        value: emp.workMode,
+                        icon: Icons.home_work_outlined,
+                      ),
+                      const Divider(height: 1),
+                      _DetailTile(
+                        label: 'Shift',
+                        value: emp.shiftType,
+                        icon: Icons.nights_stay_outlined,
+                      ),
+                      const Divider(height: 1),
+                      _DetailTile(
                         label: 'Joining Date',
                         value: _formatDate(emp.joiningDate),
                         icon: Icons.calendar_month_outlined,
@@ -329,9 +339,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
+                    borderRadius: BorderRadius.circular(12),                  ),
                   child: Column(
                     children: [
                       ListTile(

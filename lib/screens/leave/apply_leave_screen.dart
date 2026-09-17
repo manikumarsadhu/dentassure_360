@@ -66,7 +66,9 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   Future<void> _pickDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now().subtract(const Duration(days: 7)), // allow recent sick leaves
+      firstDate: DateTime.now().subtract(
+        const Duration(days: 7),
+      ), // allow recent sick leaves
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
     );
@@ -156,9 +158,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     final available = _availableForSelectedType;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apply for Leave'),
-      ),
+      appBar: AppBar(title: const Text('Apply for Leave')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -179,13 +179,16 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                     String label = type;
                     switch (type) {
                       case 'CASUAL':
-                        label = 'Casual Leave (${widget.currentBalance.availableCasual} days available)';
+                        label =
+                            'Casual Leave (${widget.currentBalance.availableCasual} days available)';
                         break;
                       case 'SICK':
-                        label = 'Sick Leave (${widget.currentBalance.availableSick} days available)';
+                        label =
+                            'Sick Leave (${widget.currentBalance.availableSick} days available)';
                         break;
                       case 'ANNUAL':
-                        label = 'Annual Leave (${widget.currentBalance.availableAnnual} days available)';
+                        label =
+                            'Annual Leave (${widget.currentBalance.availableAnnual} days available)';
                         break;
                       case 'UNPAID':
                         label = 'Unpaid Leave (No limit)';
@@ -214,7 +217,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade800, size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade800,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -249,10 +256,16 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       children: [
                         Text(
                           '${LeaveRequest.formatDateKey(_startDate)} to ${LeaveRequest.formatDateKey(_endDate)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(8),
@@ -278,7 +291,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   maxLines: 4,
                   decoration: const InputDecoration(
                     labelText: 'Reason for Leave',
-                    hintText: 'Please state the reason for your time off request...',
+                    hintText:
+                        'Please state the reason for your time off request...',
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(),
                   ),
@@ -310,7 +324,9 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           )
                         : const Icon(Icons.send_rounded),
                     label: Text(
-                      _submitting ? 'Submitting...' : 'Submit Leave Application',
+                      _submitting
+                          ? 'Submitting...'
+                          : 'Submit Leave Application',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

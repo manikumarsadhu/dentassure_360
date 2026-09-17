@@ -7,10 +7,13 @@ import 'package:dentassure_360/models/company.dart';
 import 'package:dentassure_360/models/leave_balance.dart';
 import 'package:dentassure_360/models/leave_request.dart';
 import 'package:dentassure_360/models/payslip.dart';
+import 'package:dentassure_360/models/punch_capture.dart';
+import 'package:dentassure_360/models/shift_policy.dart';
 import 'package:dentassure_360/models/timesheet_entry.dart';
 import 'package:dentassure_360/models/user_profile.dart';
 import 'package:dentassure_360/utils/auth_error_handler.dart';
 import 'package:dentassure_360/utils/team_scope.dart';
+import 'package:dentassure_360/widgets/user_avatar.dart';
 
 void main() {
   group('UserProfile Model', () {
@@ -68,6 +71,8 @@ void main() {
       expect(fromMap.isEmployee, isTrue);
       expect(fromMap.isActive, isTrue);
       expect(fromMap.isSuspended, isFalse);
+      expect(fromMap.workMode, 'OFFICE');
+      expect(fromMap.shiftType, 'DAY');
       expect(fromMap.joiningDate?.year, 2025);
     });
 
@@ -190,6 +195,17 @@ void main() {
       expect(fromMap.reportingManagerName, 'Team Lead');
       expect(fromMap.monthlySalary, 80000);
       expect(fromMap.isOnboardingComplete, isFalse);
+    });
+  });
+
+  group('UserAvatar', () {
+    test('reuses the same ImageProvider for the same data URL', () {
+      const url =
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      final first = getUserAvatarImageProvider(url);
+      final second = getUserAvatarImageProvider(url);
+      expect(first, isNotNull);
+      expect(identical(first, second), isTrue);
     });
   });
 
@@ -364,6 +380,44 @@ void main() {
       expect(fromMap.breaks, isEmpty);
     });
 
+    test('PunchCapture serializes face, GPS and Wi-Fi proof', () {
+      final capture = PunchCapture(
+        facePhotoUrl: 'data:image/jpeg;base64,abc',
+        latitude: 17.385044,
+        longitude: 78.486671,
+        accuracyMeters: 12.4,
+        wifiSsid: 'Dentassure-Office',
+        wifiBssid: 'aa:bb:cc:dd:ee:ff',
+        ipAddress: '49.37.1.10',
+        localIp: '192.168.1.24',
+        platform: 'android',
+        capturedAt: DateTime(2026, 9, 17, 9, 12),
+      );
+
+      final att = Attendance(
+        id: 'u1_2026-09-17',
+        uid: 'u1',
+        companyId: 'c1',
+        employeeId: 'EMP-001',
+        employeeName: 'Tarun',
+        date: '2026-09-17',
+        clockIn: DateTime(2026, 9, 17, 9, 12),
+        status: 'PRESENT',
+        clockInCapture: capture,
+      );
+
+      final map = att.toMap();
+      expect(map['clockInCapture'], isA<Map>());
+      final roundTrip = Attendance.fromMap(map, docId: att.id);
+      expect(roundTrip.clockInCapture?.hasFace, isTrue);
+      expect(roundTrip.clockInCapture?.hasGps, isTrue);
+      expect(roundTrip.clockInCapture?.wifiSsid, 'Dentassure-Office');
+      expect(roundTrip.clockInCapture?.wifiBssid, 'aa:bb:cc:dd:ee:ff');
+      expect(roundTrip.clockInCapture?.ipAddress, '49.37.1.10');
+      expect(roundTrip.clockInCapture?.isComplete, isTrue);
+      expect(roundTrip.clockOutCapture, isNull);
+    });
+
     test('Attendance state and working duration formatting', () {
       final clockInTime = DateTime(2026, 9, 15, 9, 45);
       final attLate = Attendance(
@@ -483,10 +537,120 @@ void main() {
       expect(fromMap.status, 'ACTIVE');
       expect(fromMap.isActive, isTrue);
       expect(fromMap.isSuspended, isFalse);
+      expect(fromMap.timezone, 'Asia/Kolkata');
+      expect(fromMap.dayShift.startHm, '09:30');
+      expect(fromMap.dayShift.endHm, '18:30');
+      expect(fromMap.nightShift.crossesMidnight, isTrue);
+      expect(fromMap.fullDayHours, 8);
+      expect(fromMap.halfDayHours, 4);
 
       final suspended = fromMap.copyWith(status: 'SUSPENDED');
       expect(suspended.isActive, isFalse);
       expect(suspended.isSuspended, isTrue);
+    });
+
+    test('Missing policy fields fall back to 09:30 day shift', () {
+      final fromMap = Company.fromMap({
+        'name': 'Legacy Clinic',
+        'createdBy': 'u0',
+      }, docId: 'legacy');
+      expect(fromMap.timezone, 'Asia/Kolkata');
+      expect(fromMap.workDays, [1, 2, 3, 4, 5]);
+      expect(fromMap.dayShift.startHm, '09:30');
+      expect(fromMap.dayShift.endHm, '18:30');
+      expect(fromMap.fullDayHours, 8);
+      expect(fromMap.halfDayHours, 4);
+      expect(fromMap.nightShift.crossesMidnight, isTrue);
+    });
+  });
+
+  group('HoursEngine', () {
+    final company = Company(
+      id: 'c1',
+      name: 'Acme',
+      createdBy: 'u0',
+    );
+    final officeDay = UserProfile(
+      uid: 'e1',
+      companyId: 'c1',
+      name: 'Dev',
+      email: 'd@c1.com',
+      role: 'EMPLOYEE',
+    );
+    final nightWorker = officeDay.copyWith(shiftType: 'NIGHT');
+    final freelancer = officeDay.copyWith(workMode: 'FREELANCE');
+
+    test('Day shift late after start plus grace', () {
+      expect(
+        HoursEngine.isLateAt(DateTime(2026, 9, 17, 9, 30), company.dayShift),
+        isFalse,
+      );
+      expect(
+        HoursEngine.isLateAt(DateTime(2026, 9, 17, 9, 31), company.dayShift),
+        isTrue,
+      );
+    });
+
+    test('Half-day and overtime from expected hours', () {
+      final short = HoursEngine.evaluate(
+        company: company,
+        user: officeDay,
+        clockIn: DateTime(2026, 9, 17, 9, 15),
+        clockOut: DateTime(2026, 9, 17, 12, 15),
+        workedMinutes: 180,
+      );
+      expect(short.status, 'HALF_DAY');
+      expect(short.expectedMinutes, 480);
+      expect(short.shortfallMinutes, 300);
+
+      final ot = HoursEngine.evaluate(
+        company: company,
+        user: officeDay,
+        clockIn: DateTime(2026, 9, 17, 9, 15),
+        clockOut: DateTime(2026, 9, 17, 19, 15),
+        workedMinutes: 540,
+      );
+      expect(ot.status, 'PRESENT');
+      expect(ot.overtimeMinutes, 60);
+    });
+
+    test('Freelance skips late and half-day', () {
+      final result = HoursEngine.evaluate(
+        company: company,
+        user: freelancer,
+        clockIn: DateTime(2026, 9, 17, 11, 0),
+        clockOut: DateTime(2026, 9, 17, 13, 0),
+        workedMinutes: 120,
+      );
+      expect(result.status, 'PRESENT');
+      expect(result.late, isFalse);
+      expect(result.halfDay, isFalse);
+    });
+
+    test('Night shift date stays on the start calendar day', () {
+      final shift = company.nightShift;
+      expect(
+        HoursEngine.attendanceDateKey(DateTime(2026, 9, 17, 21, 10), shift),
+        '2026-09-17',
+      );
+      expect(
+        HoursEngine.attendanceDateKey(DateTime(2026, 9, 18, 0, 30), shift),
+        '2026-09-17',
+      );
+      expect(
+        HoursEngine.isLateAt(DateTime(2026, 9, 17, 21, 0), shift),
+        isFalse,
+      );
+      expect(
+        HoursEngine.isLateAt(DateTime(2026, 9, 18, 0, 30), shift),
+        isTrue,
+      );
+      expect(
+        HoursEngine.isLateAt(DateTime(2026, 9, 17, 20, 50), shift),
+        isFalse,
+      );
+      expect(HoursEngine.shiftFor(company, nightWorker).crossesMidnight, isTrue);
+      expect(HoursEngine.expectedMinutes(company, shift), 540);
     });
   });
 

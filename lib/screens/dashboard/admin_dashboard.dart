@@ -10,15 +10,14 @@ import '../employee/add_employee_screen.dart';
 import '../employee/employee_list_screen.dart';
 import '../leave/admin_leave_screen.dart';
 import '../profile/my_profile_screen.dart';
+import '../../widgets/app_logo.dart';
 import '../../widgets/user_avatar.dart';
+import '../../theme/app_motion.dart';
 
 class AdminDashboard extends StatefulWidget {
   final UserProfile userProfile;
 
-  const AdminDashboard({
-    super.key,
-    required this.userProfile,
-  });
+  const AdminDashboard({super.key, required this.userProfile});
 
   @override
   State<AdminDashboard> createState() => _AdminDashboardState();
@@ -41,9 +40,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
             child: const Text('Sign Out'),
           ),
         ],
@@ -59,9 +56,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddEmployeeScreen(
-          adminProfile: widget.userProfile,
-        ),
+        builder: (_) => AddEmployeeScreen(adminProfile: widget.userProfile),
       ),
     );
   }
@@ -70,9 +65,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EmployeeListScreen(
-          adminProfile: widget.userProfile,
-        ),
+        builder: (_) => EmployeeListScreen(adminProfile: widget.userProfile),
       ),
     );
   }
@@ -81,9 +74,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminAttendanceScreen(
-          adminProfile: widget.userProfile,
-        ),
+        builder: (_) => AdminAttendanceScreen(adminProfile: widget.userProfile),
       ),
     );
   }
@@ -92,9 +83,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminLeaveScreen(
-          adminProfile: widget.userProfile,
-        ),
+        builder: (_) => AdminLeaveScreen(adminProfile: widget.userProfile),
       ),
     );
   }
@@ -112,29 +101,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                const Text(
-                  'Company Admin Portal',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                if (user.companyName.isNotEmpty)
-                  Text(
-                    user.companyName,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                else
-                  Text(
-                    'Organization Management',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                const AppHeaderLogo(height: 36, maxWidth: 158),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Company Admin',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        user.companyName.isNotEmpty
+                            ? user.companyName
+                            : 'Organization Management',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
             actions: [
@@ -205,17 +202,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     user.name.isNotEmpty
                                         ? user.name
                                         : 'Company Administrator',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          theme.colorScheme.onPrimaryContainer,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme
+                                              .colorScheme
+                                              .onPrimaryContainer,
+                                        ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     user.email,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onPrimaryContainer
+                                      color: theme
+                                          .colorScheme
+                                          .onPrimaryContainer
                                           .withValues(alpha: 0.8),
                                     ),
                                   ),
@@ -229,8 +230,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: theme.colorScheme.primary,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Text(
                                           user.role,
@@ -262,176 +264,187 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-              // Company Details Chip Card
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.badge_outlined,
-                        size: 20, color: Colors.grey.shade700),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Company ID: ${user.companyId}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade800,
-                          fontFamily: 'monospace',
+                  // Company Details Chip Card
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.badge_outlined,
+                          size: 20,
+                          color: Colors.grey.shade700,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy_rounded, size: 18),
-                      tooltip: 'Copy Company ID',
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(text: user.companyId),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Company ID copied to clipboard!'),
-                            duration: Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Overview Section Title
-              Text(
-                'Company Overview',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Real-time Employee Count & Attendance Stats
-              StreamBuilder<List<UserProfile>>(
-                stream:
-                    _firestoreService.streamCompanyEmployees(user.companyId),
-                builder: (context, empSnapshot) {
-                  final employees = empSnapshot.data ?? [];
-                  final totalStaff = employees.length;
-
-                  return StreamBuilder<List<Attendance>>(
-                    stream: _firestoreService.streamCompanyAttendanceByDate(
-                      companyId: user.companyId,
-                      date: todayKey,
-                    ),
-                    builder: (context, attSnapshot) {
-                      final todayAttendance = attSnapshot.data ?? [];
-                      final presentToday = todayAttendance
-                          .where((a) => a.isPresent || a.isLate)
-                          .length;
-                      final lateToday =
-                          todayAttendance.where((a) => a.isLate).length;
-
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              icon: Icons.people_alt_rounded,
-                              label: 'Total Staff',
-                              value: empSnapshot.hasData
-                                  ? '$totalStaff'
-                                  : '...',
-                              color: Colors.blue,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Company ID: ${user.companyId}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade800,
+                              fontFamily: 'monospace',
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatCard(
-                              icon: Icons.check_circle_outline_rounded,
-                              label: 'Active Today',
-                              value: attSnapshot.hasData
-                                  ? '$presentToday'
-                                  : '...',
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatCard(
-                              icon: Icons.alarm_on_rounded,
-                              label: 'Late Today',
-                              value: attSnapshot.hasData ? '$lateToday' : '0',
-                              color: Colors.orange,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          tooltip: 'Copy Company ID',
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(text: user.companyId),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Company ID copied to clipboard!',
+                                ),
+                                duration: Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
 
-              const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-              // Quick Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  // Overview Section Title
                   Text(
-                    'Quick Actions',
+                    'Company Overview',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: _openAddEmployee,
-                    icon: const Icon(Icons.person_add_alt_1, size: 18),
-                    label: const Text('Add Employee'),
+                  const SizedBox(height: 12),
+
+                  // Real-time Employee Count & Attendance Stats
+                  StreamBuilder<List<UserProfile>>(
+                    stream: _firestoreService.streamCompanyEmployees(
+                      user.companyId,
+                    ),
+                    builder: (context, empSnapshot) {
+                      final employees = empSnapshot.data ?? [];
+                      final totalStaff = employees.length;
+
+                      return StreamBuilder<List<Attendance>>(
+                        stream: _firestoreService.streamCompanyAttendanceByDate(
+                          companyId: user.companyId,
+                          date: todayKey,
+                        ),
+                        builder: (context, attSnapshot) {
+                          final todayAttendance = attSnapshot.data ?? [];
+                          final presentToday = todayAttendance
+                              .where((a) => a.isPresent || a.isLate)
+                              .length;
+                          final lateToday = todayAttendance
+                              .where((a) => a.isLate)
+                              .length;
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _StatCard(
+                                  icon: Icons.people_alt_rounded,
+                                  label: 'Total Staff',
+                                  value: empSnapshot.hasData
+                                      ? '$totalStaff'
+                                      : '...',
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _StatCard(
+                                  icon: Icons.check_circle_outline_rounded,
+                                  label: 'Active Today',
+                                  value: attSnapshot.hasData
+                                      ? '$presentToday'
+                                      : '...',
+                                  color: Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _StatCard(
+                                  icon: Icons.alarm_on_rounded,
+                                  label: 'Late Today',
+                                  value: attSnapshot.hasData
+                                      ? '$lateToday'
+                                      : '0',
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // Quick Actions
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Quick Actions',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _openAddEmployee,
+                        icon: const Icon(Icons.person_add_alt_1, size: 18),
+                        label: const Text('Add Employee'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Management Tiles
+                  _ActionTile(
+                    icon: Icons.group_outlined,
+                    title: 'Employees Directory',
+                    subtitle: 'View, onboard, edit, and suspend team members',
+                    onTap: _openEmployeeList,
+                  ),
+                  const SizedBox(height: 10),
+
+                  _ActionTile(
+                    icon: Icons.access_time_rounded,
+                    title: 'Attendance Records',
+                    subtitle: 'Track check-ins, check-outs, and daily reports',
+                    onTap: _openAttendanceRecords,
+                  ),
+                  const SizedBox(height: 10),
+
+                  _ActionTile(
+                    icon: Icons.event_note_rounded,
+                    title: 'Leave Approvals',
+                    subtitle: 'Review employee leave applications',
+                    onTap: _openLeaveManagement,
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Management Tiles
-              _ActionTile(
-                icon: Icons.group_outlined,
-                title: 'Employees Directory',
-                subtitle: 'View, onboard, edit, and suspend team members',
-                onTap: _openEmployeeList,
-              ),
-              const SizedBox(height: 10),
-
-              _ActionTile(
-                icon: Icons.access_time_rounded,
-                title: 'Attendance Records',
-                subtitle: 'Track check-ins, check-outs, and daily reports',
-                onTap: _openAttendanceRecords,
-              ),
-              const SizedBox(height: 10),
-
-              _ActionTile(
-                icon: Icons.event_note_rounded,
-                title: 'Leave Approvals',
-                subtitle: 'Review employee leave applications',
-                onTap: _openLeaveManagement,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
-  },
-);
-}
+  }
 }
 
 class _StatCard extends StatelessWidget {
@@ -499,31 +512,28 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
+    return MotionCard(
+      child: Card(
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
           ),
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: onTap,
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-        onTap: onTap,
       ),
     );
   }

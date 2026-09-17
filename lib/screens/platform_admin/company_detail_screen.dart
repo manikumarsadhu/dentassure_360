@@ -400,9 +400,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen>
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
+                  borderRadius: BorderRadius.circular(14),                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
@@ -478,9 +476,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen>
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
+                  borderRadius: BorderRadius.circular(14),                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -738,9 +734,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen>
                         return Card(
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade200),
-                          ),
+                            borderRadius: BorderRadius.circular(12),                          ),
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: att.isLate
@@ -834,9 +828,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen>
                   return Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
+                      borderRadius: BorderRadius.circular(12),                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Column(
@@ -1039,9 +1031,7 @@ class _UserCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
+        borderRadius: BorderRadius.circular(12),      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

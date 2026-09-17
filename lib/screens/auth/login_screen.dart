@@ -1,9 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/auth_error_handler.dart';
+import '../../theme/app_motion.dart';
+import '../../widgets/app_logo.dart';
 
 class _DemoAccount {
   final String role;
@@ -139,10 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
       dynamic credential;
       try {
         credential = await _authService
-            .login(
-              email: email,
-              password: password,
-            )
+            .login(email: email, password: password)
             .timeout(
               const Duration(seconds: 15),
               onTimeout: () => throw TimeoutException(
@@ -153,12 +153,10 @@ class _LoginScreenState extends State<LoginScreen> {
         // If it's the superadmin account and not yet created in Firebase Auth, auto-provision
         if (email.toLowerCase() == 'superadmin@yopmail.com') {
           debugPrint(
-              '[Login] Super Admin not found, auto-provisioning credentials...');
+            '[Login] Super Admin not found, auto-provisioning credentials...',
+          );
           credential = await _authService
-              .register(
-                email: email,
-                password: password,
-              )
+              .register(email: email, password: password)
               .timeout(
                 const Duration(seconds: 15),
                 onTimeout: () => throw TimeoutException(
@@ -214,8 +212,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _showForgotPasswordDialog() async {
-    final resetEmailController =
-        TextEditingController(text: _emailController.text.trim());
+    final resetEmailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     final dialogFormKey = GlobalKey<FormState>();
     bool resetting = false;
 
@@ -261,8 +260,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed:
-                      resetting ? null : () => Navigator.pop(dialogContext),
+                  onPressed: resetting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
@@ -327,11 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final bool canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      appBar: canPop
-          ? AppBar(
-              title: const Text('Sign In'),
-            )
-          : null,
+      appBar: canPop ? AppBar(title: const Text('Sign In')) : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -344,23 +340,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.corporate_fare_rounded,
-                      size: 68,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Dentassure 360',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
+                    const Center(
+                      child: AppHeaderLogo(
+                        height: 84,
+                        maxWidth: 360,
+                        alignment: Alignment.center,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 12),
                     Text(
-                      'IT Workforce & SaaS Employee Management',
+                      'Sign in to your workspace',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.grey.shade600,
@@ -536,67 +525,64 @@ class _DemoLoginsPanel extends StatelessWidget {
       grouped.putIfAbsent(account.role, () => []).add(account);
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return FadeSlideIn(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.vpn_key_rounded,
-                size: 18,
-                color: theme.colorScheme.primary,
+              Row(
+                children: [
+                  Icon(
+                    Icons.vpn_key_rounded,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Demo logins',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 4),
               Text(
-                'Demo logins',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                'Tap an account to fill email and password, then Log In.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
+              const SizedBox(height: 12),
+              for (final entry in grouped.entries) ...[
+                Text(
+                  entry.key.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final account in entry.value)
+                      FilterChip(
+                        selected: selectedEmail == account.email,
+                        label: Text(account.name),
+                        tooltip: '${account.email}\n${account.password}',
+                        onSelected: enabled ? (_) => onSelect(account) : null,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Tap an account to fill email and password, then Log In.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 12),
-          for (final entry in grouped.entries) ...[
-            Text(
-              entry.key.toUpperCase(),
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final account in entry.value)
-                  FilterChip(
-                    selected: selectedEmail == account.email,
-                    label: Text(account.name),
-                    tooltip: '${account.email}\n${account.password}',
-                    onSelected: enabled ? (_) => onSelect(account) : null,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
+        ),
       ),
     );
   }

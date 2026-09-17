@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/attendance.dart';
 import '../models/company.dart';
+import '../models/punch_capture.dart';
 import '../models/company_asset.dart';
 import '../models/expense_claim.dart';
 import '../models/leave_request.dart';
@@ -10,6 +11,7 @@ import '../models/performance_goal.dart';
 import '../models/recruitment_candidate.dart';
 import '../models/timesheet_entry.dart';
 import '../models/user_profile.dart';
+import '../models/shift_policy.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -27,6 +29,12 @@ class FirestoreService {
     String? explicitCompanyId,
     String? createdByUid,
     String? designation,
+    String timezone = 'Asia/Kolkata',
+    List<int> workDays = const [1, 2, 3, 4, 5],
+    double fullDayHours = 8,
+    double halfDayHours = 4,
+    ShiftTemplate? dayShift,
+    ShiftTemplate? nightShift,
   }) async {
     final batch = _firestore.batch();
 
@@ -59,6 +67,12 @@ class FirestoreService {
       'address': cleanAddress,
       'industry': cleanIndustry,
       'status': 'ACTIVE',
+      'timezone': timezone,
+      'workDays': workDays,
+      'fullDayHours': fullDayHours,
+      'halfDayHours': halfDayHours,
+      'dayShift': (dayShift ?? ShiftTemplate.dayDefault).toMap(),
+      'nightShift': (nightShift ?? ShiftTemplate.nightDefault).toMap(),
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -80,6 +94,8 @@ class FirestoreService {
       'reportingManagerUid': '',
       'reportingManagerName': '',
       'monthlySalary': 0,
+      'workMode': 'OFFICE',
+      'shiftType': 'DAY',
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -169,6 +185,12 @@ class FirestoreService {
       'address': company.address.trim(),
       'industry': company.industry.trim(),
       'status': company.status,
+      'timezone': company.timezone,
+      'workDays': company.workDays,
+      'fullDayHours': company.fullDayHours,
+      'halfDayHours': company.halfDayHours,
+      'dayShift': company.dayShift.toMap(),
+      'nightShift': company.nightShift.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -354,6 +376,8 @@ class FirestoreService {
       'reportingManagerUid': employee.reportingManagerUid.trim(),
       'reportingManagerName': employee.reportingManagerName.trim(),
       'monthlySalary': employee.monthlySalary,
+      'workMode': employee.workMode,
+      'shiftType': employee.shiftType,
       'onboardingDocsCollected': employee.onboardingDocsCollected,
       'onboardingAssetsAssigned': employee.onboardingAssetsAssigned,
       'onboardingAccessReady': employee.onboardingAccessReady,
@@ -434,18 +458,109 @@ class FirestoreService {
     });
   }
 
-  /// Clock in employee
+  /// Open punch for the employee's current shift date (handles night spanning midnight).
+  Stream<Attendance?> streamCurrentShiftAttendance({
+    required UserProfile user,
+  }) {
+    return streamCompany(user.companyId).asyncExpand((company) {
+      final policy = company ??
+          Company(
+            id: user.companyId,
+            name: user.companyName,
+            createdBy: '',
+          );
+      final shift = HoursEngine.shiftFor(policy, user);
+      final now = DateTime.now();
+      final primary = HoursEngine.attendanceDateKey(now, shift);
+      final previous = Attendance.formatDateKey(
+        now.subtract(const Duration(days: 1)),
+      );
+      return _combineAttendanceDocs(user.uid, primary, previous);
+    });
+  }
+
+  Stream<Attendance?> _combineAttendanceDocs(
+    String uid,
+    String primaryDate,
+    String previousDate,
+  ) {
+    if (primaryDate == previousDate) {
+      return streamTodayAttendance(uid: uid, date: primaryDate);
+    }
+
+    Attendance? parse(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      return Attendance.fromMap(snapshot.data()!, docId: snapshot.id);
+    }
+
+    final primaryRef =
+        _firestore.collection('attendance').doc('${uid}_$primaryDate');
+    final previousRef =
+        _firestore.collection('attendance').doc('${uid}_$previousDate');
+
+    return Stream<Attendance?>.multi((controller) {
+      Attendance? primary;
+      Attendance? previous;
+      var gotPrimary = false;
+      var gotPrevious = false;
+
+      void emit() {
+        if (!gotPrimary || !gotPrevious) return;
+        final open = [previous, primary]
+            .whereType<Attendance>()
+            .where((a) => a.isClockedIn)
+            .toList();
+        if (open.isNotEmpty) {
+          controller.add(open.first);
+          return;
+        }
+        controller.add(primary ?? previous);
+      }
+
+      final sub1 = primaryRef.snapshots().listen((s) {
+        primary = parse(s);
+        gotPrimary = true;
+        emit();
+      });
+      final sub2 = previousRef.snapshots().listen((s) {
+        previous = parse(s);
+        gotPrevious = true;
+        emit();
+      });
+      controller.onCancel = () async {
+        await sub1.cancel();
+        await sub2.cancel();
+      };
+    });
+  }
+
+  Future<Company> _companyPolicy(String companyId) async {
+    return await getCompany(companyId) ??
+        Company(id: companyId, name: '', createdBy: '');
+  }
+
+  /// Clock in employee with face, GPS, and network proof.
   Future<Attendance> clockIn({
     required UserProfile user,
+    required PunchCapture capture,
     DateTime? time,
   }) async {
+    if (!capture.isComplete) {
+      throw Exception(
+        'Clock-in needs a live face photo and GPS location.',
+      );
+    }
     final now = time ?? DateTime.now();
-    final dateKey = Attendance.formatDateKey(now);
+    final company = await _companyPolicy(user.companyId);
+    final shift = HoursEngine.shiftFor(company, user);
+    final dateKey = HoursEngine.attendanceDateKey(now, shift);
     final docId = '${user.uid}_$dateKey';
-
-    // Late threshold: after 09:30 AM
-    final isLate = (now.hour > 9) || (now.hour == 9 && now.minute > 30);
-    final status = isLate ? 'LATE' : 'PRESENT';
+    final hours = HoursEngine.evaluate(
+      company: company,
+      user: user,
+      clockIn: now,
+      workedMinutes: 0,
+    );
 
     final attendance = Attendance(
       id: docId,
@@ -458,8 +573,14 @@ class FirestoreService {
       date: dateKey,
       clockIn: now,
       clockOut: null,
-      status: status,
+      status: hours.status,
       workingMinutes: 0,
+      clockInCapture: capture,
+      expectedMinutes: hours.expectedMinutes,
+      overtimeMinutes: 0,
+      shortfallMinutes: 0,
+      workMode: user.workMode,
+      shiftType: user.shiftType,
       createdAt: now,
       updatedAt: now,
     );
@@ -488,12 +609,18 @@ class FirestoreService {
     ];
   }
 
-  /// Clock out employee
+  /// Clock out employee with face, GPS, and network proof.
   Future<Attendance> clockOut({
     required String attendanceId,
     required DateTime clockInTime,
+    required PunchCapture capture,
     DateTime? time,
   }) async {
+    if (!capture.isComplete) {
+      throw Exception(
+        'Clock-out needs a live face photo and GPS location.',
+      );
+    }
     final now = time ?? DateTime.now();
     final docRef = _firestore.collection('attendance').doc(attendanceId);
     final current = await _loadAttendance(attendanceId);
@@ -502,19 +629,37 @@ class FirestoreService {
       clockIn: current.clockIn ?? clockInTime,
       clockOut: now,
       breaks: closedBreaks,
+      clockOutCapture: capture,
     );
     final workingMinutes = settled.netWorkedDuration(now).inMinutes;
-
-    String newStatus = current.status == 'LATE' ? 'LATE' : 'PRESENT';
-    if (newStatus != 'LATE' && workingMinutes < 240) {
-      newStatus = 'HALF_DAY';
-    }
+    final company = await _companyPolicy(current.companyId);
+    final user = await getUserProfile(current.uid) ??
+        UserProfile(
+          uid: current.uid,
+          companyId: current.companyId,
+          name: current.employeeName,
+          email: '',
+          role: 'EMPLOYEE',
+          workMode: current.workMode,
+          shiftType: current.shiftType,
+        );
+    final hours = HoursEngine.evaluate(
+      company: company,
+      user: user,
+      clockIn: current.clockIn ?? clockInTime,
+      clockOut: now,
+      workedMinutes: workingMinutes,
+    );
 
     await docRef.update({
       'clockOut': Timestamp.fromDate(now),
       'workingMinutes': workingMinutes,
-      'status': newStatus,
+      'status': hours.status,
+      'expectedMinutes': hours.expectedMinutes,
+      'overtimeMinutes': hours.overtimeMinutes,
+      'shortfallMinutes': hours.shortfallMinutes,
       'breaks': closedBreaks.map((b) => b.toMap()).toList(),
+      'clockOutCapture': capture.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
 

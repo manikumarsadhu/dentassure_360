@@ -5,6 +5,7 @@ import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/auth_error_handler.dart';
+import '../../widgets/office_timings_fields.dart';
 
 class CreateCompanyScreen extends StatefulWidget {
   final UserProfile platformAdmin;
@@ -42,6 +43,7 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   ];
 
   late String _selectedIndustry;
+  OfficeTimingsValue _timings = const OfficeTimingsValue();
 
   final _authService = AuthService();
   final _firestoreService = FirestoreService();
@@ -129,6 +131,12 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
             explicitCompanyId: customId.isNotEmpty ? customId : null,
             createdByUid: widget.platformAdmin.uid,
             designation: _designationController.text.trim(),
+            timezone: _timings.timezone,
+            workDays: _timings.workDays,
+            fullDayHours: _timings.fullDayHours,
+            halfDayHours: _timings.halfDayHours,
+            dayShift: _timings.dayShift,
+            nightShift: _timings.nightShift,
           )
           .timeout(
             const Duration(seconds: 15),
@@ -347,10 +355,27 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // SECTION 2: Company Admin Credentials
+                _SectionHeader(
+                  icon: Icons.schedule_rounded,
+                  title: '2. Office timings & hours',
+                  color: Colors.teal.shade700,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Default day shift is 09:30–18:30. Late uses start + grace. Half-day if worked hours are below the threshold. Night staff use the night template.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
+                const SizedBox(height: 12),
+                OfficeTimingsFields(
+                  value: _timings,
+                  onChanged: (next) => setState(() => _timings = next),
+                ),
+                const SizedBox(height: 28),
+
+                // SECTION 3: Company Admin Credentials
                 _SectionHeader(
                   icon: Icons.admin_panel_settings_rounded,
-                  title: '2. Company Administrator Account',
+                  title: '3. Company Administrator Account',
                   color: Colors.indigo,
                 ),
                 const SizedBox(height: 12),

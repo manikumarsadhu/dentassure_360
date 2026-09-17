@@ -3,14 +3,13 @@ import 'package:flutter/material.dart';
 import '../../models/attendance.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../theme/app_motion.dart';
+import '../../widgets/verified_punch_sheet.dart';
 
 class EmployeeAttendanceHistoryScreen extends StatefulWidget {
   final UserProfile employee;
 
-  const EmployeeAttendanceHistoryScreen({
-    super.key,
-    required this.employee,
-  });
+  const EmployeeAttendanceHistoryScreen({super.key, required this.employee});
 
   @override
   State<EmployeeAttendanceHistoryScreen> createState() =>
@@ -25,8 +24,9 @@ class _EmployeeAttendanceHistoryScreenState
   List<Attendance> _filterAttendance(List<Attendance> list) {
     if (_selectedStatusFilter == 'ALL') return list;
     return list
-        .where((a) =>
-            a.status.toUpperCase() == _selectedStatusFilter.toUpperCase())
+        .where(
+          (a) => a.status.toUpperCase() == _selectedStatusFilter.toUpperCase(),
+        )
         .toList();
   }
 
@@ -35,12 +35,11 @@ class _EmployeeAttendanceHistoryScreenState
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Attendance History'),
-      ),
+      appBar: AppBar(title: const Text('My Attendance History')),
       body: StreamBuilder<List<Attendance>>(
-        stream: _firestoreService
-            .streamEmployeeAttendanceHistory(widget.employee.uid),
+        stream: _firestoreService.streamEmployeeAttendanceHistory(
+          widget.employee.uid,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -50,7 +49,9 @@ class _EmployeeAttendanceHistoryScreenState
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: Text('Failed to load attendance logs: ${snapshot.error}'),
+                child: Text(
+                  'Failed to load attendance logs: ${snapshot.error}',
+                ),
               ),
             );
           }
@@ -59,12 +60,15 @@ class _EmployeeAttendanceHistoryScreenState
           final records = _filterAttendance(allRecords);
 
           // Calculate statistics
-          final presentCount =
-              allRecords.where((a) => a.isPresent || a.isLate).length;
+          final presentCount = allRecords
+              .where((a) => a.isPresent || a.isLate)
+              .length;
           final lateCount = allRecords.where((a) => a.isLate).length;
           final halfDayCount = allRecords.where((a) => a.isHalfDay).length;
           final totalMinutes = allRecords.fold<int>(
-              0, (sum, a) => sum + (a.workingMinutes > 0 ? a.workingMinutes : 0));
+            0,
+            (sum, a) => sum + (a.workingMinutes > 0 ? a.workingMinutes : 0),
+          );
           final totalHours = (totalMinutes / 60).toStringAsFixed(1);
 
           return Column(
@@ -169,22 +173,22 @@ class _EmployeeAttendanceHistoryScreenState
                         ),
                       )
                     : records.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No records matching filter "$_selectedStatusFilter"',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: records.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final record = records[index];
-                              return _AttendanceCard(attendance: record);
-                            },
-                          ),
+                    ? Center(
+                        child: Text(
+                          'No records matching filter "$_selectedStatusFilter"',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: records.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final record = records[index];
+                          return _AttendanceCard(attendance: record);
+                        },
+                      ),
               ),
             ],
           );
@@ -278,82 +282,103 @@ class _AttendanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            // Header: Date & Status Badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.calendar_month,
-                        size: 18, color: Colors.grey.shade700),
-                    const SizedBox(width: 8),
-                    Text(
-                      attendance.date,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+    return MotionCard(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            children: [
+              // Header: Date & Status Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_month,
+                        size: 18,
+                        color: Colors.grey.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        attendance.date,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                    child: Text(
+                      attendance.status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+
+              // Time Row: Clock In, Clock Out, Total Duration
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _TimeItem(
+                    icon: Icons.login_rounded,
+                    label: 'Clock In',
+                    time: attendance.formattedClockIn,
+                    color: Colors.green,
+                  ),
+                  _TimeItem(
+                    icon: Icons.logout_rounded,
+                    label: 'Clock Out',
+                    time: attendance.formattedClockOut,
+                    color: attendance.isClockedIn ? Colors.grey : Colors.orange,
+                  ),
+                  _TimeItem(
+                    icon: Icons.timer_outlined,
+                    label: 'Working',
+                    time: attendance.formattedWorkingDuration,
+                    color: Colors.blue,
+                  ),
+                ],
+              ),
+              PunchProofRow(
+                clockIn: attendance.clockInCapture,
+                clockOut: attendance.clockOutCapture,
+              ),
+              if (attendance.expectedMinutes > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    attendance.status,
+                    'Expected ${attendance.formattedExpectedDuration}'
+                    '${attendance.overtimeMinutes > 0 ? ' · OT ${attendance.formattedOvertimeDuration}' : ''}',
                     style: TextStyle(
-                      color: statusColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-
-            // Time Row: Clock In, Clock Out, Total Duration
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _TimeItem(
-                  icon: Icons.login_rounded,
-                  label: 'Clock In',
-                  time: attendance.formattedClockIn,
-                  color: Colors.green,
-                ),
-                _TimeItem(
-                  icon: Icons.logout_rounded,
-                  label: 'Clock Out',
-                  time: attendance.formattedClockOut,
-                  color: attendance.isClockedIn ? Colors.grey : Colors.orange,
-                ),
-                _TimeItem(
-                  icon: Icons.timer_outlined,
-                  label: 'Working',
-                  time: attendance.formattedWorkingDuration,
-                  color: Colors.blue,
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -391,10 +416,7 @@ class _TimeItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           time,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
     );

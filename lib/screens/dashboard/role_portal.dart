@@ -12,6 +12,7 @@ import '../../utils/team_scope.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/clock_in_card.dart';
 import '../../widgets/user_avatar.dart';
+import '../../theme/app_motion.dart';
 import '../assets/assets_screen.dart';
 import '../attendance/admin_attendance_screen.dart';
 import '../employee/add_employee_screen.dart';
@@ -175,39 +176,50 @@ class _RoleHome extends StatelessWidget {
                       builder: (context, expSnap) {
                         final allowed = visible.map((u) => u.uid).toSet();
                         final att = (attSnap.data ?? [])
-                            .where((a) =>
-                                user.isPeopleOps || allowed.contains(a.uid))
+                            .where(
+                              (a) =>
+                                  user.isPeopleOps || allowed.contains(a.uid),
+                            )
                             .toList();
                         final leaves = (leaveSnap.data ?? [])
-                            .where((l) =>
-                                user.isPeopleOps || allowed.contains(l.uid))
+                            .where(
+                              (l) =>
+                                  user.isPeopleOps || allowed.contains(l.uid),
+                            )
                             .toList();
                         final present = att
                             .where((a) => a.isPresent || a.isLate)
                             .length;
                         final lateCount = att.where((a) => a.isLate).length;
-                        final pendingLeaveList =
-                            leaves.where((l) => l.isPending).toList();
+                        final pendingLeaveList = leaves
+                            .where((l) => l.isPending)
+                            .toList();
                         final pendingTsList = (tsSnap.data ?? [])
-                            .where((t) =>
-                                t.isPending &&
-                                (user.isPeopleOps || allowed.contains(t.uid)))
+                            .where(
+                              (t) =>
+                                  t.isPending &&
+                                  (user.isPeopleOps || allowed.contains(t.uid)),
+                            )
                             .toList();
                         final pendingExpList = (expSnap.data ?? [])
-                            .where((e) =>
-                                e.isPending &&
-                                (user.isPeopleOps || allowed.contains(e.uid)))
+                            .where(
+                              (e) =>
+                                  e.isPending &&
+                                  (user.isPeopleOps || allowed.contains(e.uid)),
+                            )
                             .toList();
                         final onboardingPeople = all
-                            .where((u) =>
-                                !u.isOnboardingComplete && !u.isPlatformAdmin)
+                            .where(
+                              (u) =>
+                                  !u.isOnboardingComplete && !u.isPlatformAdmin,
+                            )
                             .toList();
                         final hour = DateTime.now().hour;
                         final greeting = hour < 12
                             ? 'Good morning'
                             : hour < 17
-                                ? 'Good afternoon'
-                                : 'Good evening';
+                            ? 'Good afternoon'
+                            : 'Good evening';
                         final firstName = user.name.split(' ').first;
 
                         return ListView(
@@ -301,8 +313,10 @@ class _RoleHome extends StatelessWidget {
                                     title: 'Add Employee',
                                     subtitle: 'Onboard a new team member',
                                     onTap: () {
-                                      Navigator.of(context, rootNavigator: true)
-                                          .push(
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).push(
                                         MaterialPageRoute(
                                           builder: (_) => AddEmployeeScreen(
                                             adminProfile: user,
@@ -490,20 +504,20 @@ class _QuickAction extends StatelessWidget {
     final theme = Theme.of(context);
     return SizedBox(
       width: 260,
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: Colors.grey.shade200),
-        ),
-        child: ListTile(
-          onTap: onTap,
-          leading: CircleAvatar(
-            backgroundColor: theme.colorScheme.primaryContainer,
-            child: Icon(icon, color: theme.colorScheme.primary),
+      child: MotionCard(
+        child: Card(
+          child: ListTile(
+            onTap: onTap,
+            leading: CircleAvatar(
+              backgroundColor: theme.colorScheme.primaryContainer,
+              child: Icon(icon, color: theme.colorScheme.primary),
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
           ),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         ),
       ),
     );
@@ -530,21 +544,27 @@ class _NeedsAttentionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_AttentionItem>[
-      ...pendingLeave.take(4).map(
+      ...pendingLeave
+          .take(4)
+          .map(
             (l) => _AttentionItem(
               title: l.employeeName,
               subtitle: '${l.displayLeaveType} · ${l.formattedDateRange}',
               onTap: onOpenLeave,
             ),
           ),
-      ...pendingTimesheets.take(3).map(
+      ...pendingTimesheets
+          .take(3)
+          .map(
             (t) => _AttentionItem(
               title: t.employeeName,
               subtitle: '${t.project} · ${t.hours}h pending',
               onTap: onOpenTimesheet,
             ),
           ),
-      ...pendingExpenses.take(3).map(
+      ...pendingExpenses
+          .take(3)
+          .map(
             (e) => _AttentionItem(
               title: e.employeeName,
               subtitle: '${e.title} · ₹${e.amount.toStringAsFixed(0)}',
@@ -553,43 +573,39 @@ class _NeedsAttentionPanel extends StatelessWidget {
           ),
     ];
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Needs attention',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            if (items.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'No pending leave, timesheets, or expenses.',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              )
-            else
-              ...items.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(item.title),
-                  subtitle: Text(item.subtitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: item.onTap,
-                ),
+    return MotionCard(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Needs attention',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
-          ],
+              const SizedBox(height: 8),
+              if (items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    'No pending leave, timesheets, or expenses.',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                )
+              else
+                ...items.map(
+                  (item) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(item.title),
+                    subtitle: Text(item.subtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: item.onTap,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -624,58 +640,54 @@ class _PeopleSnapshotPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final preview = people.take(6).toList();
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+    return MotionCard(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                TextButton(onPressed: onSeeAll, child: const Text('See all')),
-              ],
-            ),
-            if (preview.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  emptyLabel,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              )
-            else
-              ...preview.map(
-                (p) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: UserAvatar(
-                    avatarUrl: p.avatarUrl,
-                    name: p.name,
-                    radius: 18,
-                    fontSize: 14,
-                  ),
-                  title: Text(p.name),
-                  subtitle: Text(
-                    '${p.designation} · ${p.department}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: onSeeAll,
-                ),
+                  TextButton(onPressed: onSeeAll, child: const Text('See all')),
+                ],
               ),
-          ],
+              if (preview.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    emptyLabel,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                )
+              else
+                ...preview.map(
+                  (p) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: UserAvatar(
+                      avatarUrl: p.avatarUrl,
+                      name: p.name,
+                      radius: 18,
+                      fontSize: 14,
+                    ),
+                    title: Text(p.name),
+                    subtitle: Text(
+                      '${p.designation} · ${p.department}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: onSeeAll,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

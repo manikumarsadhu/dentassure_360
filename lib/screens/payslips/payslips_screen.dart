@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/payslip.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
+import '../../theme/app_motion.dart';
 
 class PayslipsScreen extends StatelessWidget {
   final UserProfile viewer;
@@ -30,12 +31,14 @@ class PayslipsScreen extends StatelessWidget {
           content: DropdownButtonFormField<String>(
             initialValue: uid,
             items: people
-                .map((u) => DropdownMenuItem(
-                      value: u.uid,
-                      child: Text(
-                        '${u.name} (₹${u.monthlySalary.toStringAsFixed(0)})',
-                      ),
-                    ))
+                .map(
+                  (u) => DropdownMenuItem(
+                    value: u.uid,
+                    child: Text(
+                      '${u.name} (₹${u.monthlySalary.toStringAsFixed(0)})',
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) => setDialog(() => uid = v ?? uid),
             decoration: const InputDecoration(labelText: 'Employee'),
@@ -101,9 +104,7 @@ class PayslipsScreen extends StatelessWidget {
           builder: (context, snapshot) {
             final slips = snapshot.data ?? [];
             return Scaffold(
-              appBar: AppBar(
-                title: Text(title),
-              ),
+              appBar: AppBar(title: Text(title)),
               floatingActionButton: viewer.isPeopleOps
                   ? FloatingActionButton.extended(
                       onPressed: () => _issue(context, people),
@@ -127,16 +128,18 @@ class PayslipsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         ...slips.map(
-                          (p) => Card(
-                            child: ListTile(
-                              title: Text('${p.employeeName} • ${p.month}'),
-                              subtitle: Text(
-                                'Basic ₹${p.basic.toStringAsFixed(0)}  HRA ₹${p.hra.toStringAsFixed(0)}  Allowances ₹${p.allowances.toStringAsFixed(0)}  Deductions ₹${p.deductions.toStringAsFixed(0)}',
-                              ),
-                              trailing: Text(
-                                '₹${p.netPay.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                          (p) => MotionCard(
+                            child: Card(
+                              child: ListTile(
+                                title: Text('${p.employeeName} • ${p.month}'),
+                                subtitle: Text(
+                                  'Basic ₹${p.basic.toStringAsFixed(0)}  HRA ₹${p.hra.toStringAsFixed(0)}  Allowances ₹${p.allowances.toStringAsFixed(0)}  Deductions ₹${p.deductions.toStringAsFixed(0)}',
+                                ),
+                                trailing: Text(
+                                  '₹${p.netPay.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -156,10 +159,7 @@ class _PayslipEmptyState extends StatelessWidget {
   final bool personal;
   final VoidCallback? onIssue;
 
-  const _PayslipEmptyState({
-    required this.personal,
-    this.onIssue,
-  });
+  const _PayslipEmptyState({required this.personal, this.onIssue});
 
   @override
   Widget build(BuildContext context) {
@@ -179,9 +179,8 @@ class _PayslipEmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'No payslips yet',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(

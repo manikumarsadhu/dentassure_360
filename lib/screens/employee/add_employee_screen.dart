@@ -52,6 +52,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
 
   late String _selectedDepartment;
   late String _selectedRole;
+  String _workMode = 'OFFICE';
+  String _shiftType = 'DAY';
   String _reportingManagerUid = '';
   String _reportingManagerName = '';
   final _salaryController = TextEditingController();
@@ -150,6 +152,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         reportingManagerUid: _reportingManagerUid,
         reportingManagerName: _reportingManagerName,
         monthlySalary: double.tryParse(_salaryController.text.trim()) ?? 0,
+        workMode: _workMode,
+        shiftType: _shiftType,
         joiningDate: _joiningDate,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -393,6 +397,42 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         _selectedDepartment = val;
                       });
                     }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                DropdownButtonFormField<String>(
+                  initialValue: _workMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Work mode',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.home_work_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'OFFICE', child: Text('Office')),
+                    DropdownMenuItem(value: 'HYBRID', child: Text('Hybrid')),
+                    DropdownMenuItem(value: 'WFH', child: Text('Work from home')),
+                    DropdownMenuItem(value: 'FREELANCE', child: Text('Freelance')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _workMode = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                DropdownButtonFormField<String>(
+                  initialValue: _shiftType,
+                  decoration: const InputDecoration(
+                    labelText: 'Shift',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.nights_stay_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'DAY', child: Text('Day')),
+                    DropdownMenuItem(value: 'NIGHT', child: Text('Night')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _shiftType = val);
                   },
                 ),
                 const SizedBox(height: 16),

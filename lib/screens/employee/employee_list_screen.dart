@@ -6,6 +6,7 @@ import '../../utils/team_scope.dart';
 import 'add_employee_screen.dart';
 import 'employee_detail_screen.dart';
 import '../../widgets/user_avatar.dart';
+import '../../theme/app_motion.dart';
 
 class EmployeeListScreen extends StatefulWidget {
   final UserProfile adminProfile;
@@ -47,7 +48,11 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         final matchId = emp.employeeId.toLowerCase().contains(query);
         final matchDept = emp.department.toLowerCase().contains(query);
         final matchDesig = emp.designation.toLowerCase().contains(query);
-        if (!matchName && !matchEmail && !matchId && !matchDept && !matchDesig) {
+        if (!matchName &&
+            !matchEmail &&
+            !matchId &&
+            !matchDept &&
+            !matchDesig) {
           return false;
         }
       }
@@ -80,32 +85,33 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     void openAddEmployee() {
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
-          builder: (_) => AddEmployeeScreen(
-            adminProfile: widget.adminProfile,
-          ),
+          builder: (_) => AddEmployeeScreen(adminProfile: widget.adminProfile),
         ),
       );
     }
+
     return Scaffold(
       appBar: widget.embedded
           ? null
           : AppBar(
-        title: Text(widget.teamScoped ? 'My Team' : 'Employees Directory'),
-        actions: [
-          if (canAdd)
-          IconButton(
-            tooltip: 'Add Employee',
-            icon: const Icon(Icons.person_add_alt_1),
-            onPressed: openAddEmployee,
-          ),
-        ],
-      ),
+              title: Text(
+                widget.teamScoped ? 'My Team' : 'Employees Directory',
+              ),
+              actions: [
+                if (canAdd)
+                  IconButton(
+                    tooltip: 'Add Employee',
+                    icon: const Icon(Icons.person_add_alt_1),
+                    onPressed: openAddEmployee,
+                  ),
+              ],
+            ),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
-        onPressed: openAddEmployee,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Employee'),
-      )
+              onPressed: openAddEmployee,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Employee'),
+            )
           : null,
       body: Column(
         children: [
@@ -155,43 +161,76 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                   child: Row(
                     children: [
                       // Status Filters
-                      _buildFilterChip('All Status', 'ALL', _selectedStatusFilter,
-                          (v) => setState(() => _selectedStatusFilter = v)),
+                      _buildFilterChip(
+                        'All Status',
+                        'ALL',
+                        _selectedStatusFilter,
+                        (v) => setState(() => _selectedStatusFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Active', 'ACTIVE', _selectedStatusFilter,
-                          (v) => setState(() => _selectedStatusFilter = v)),
+                      _buildFilterChip(
+                        'Active',
+                        'ACTIVE',
+                        _selectedStatusFilter,
+                        (v) => setState(() => _selectedStatusFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Suspended', 'SUSPENDED',
-                          _selectedStatusFilter,
-                          (v) => setState(() => _selectedStatusFilter = v)),
+                      _buildFilterChip(
+                        'Suspended',
+                        'SUSPENDED',
+                        _selectedStatusFilter,
+                        (v) => setState(() => _selectedStatusFilter = v),
+                      ),
                       const SizedBox(width: 16),
-                      Container(height: 20, width: 1, color: Colors.grey.shade300),
+                      Container(
+                        height: 20,
+                        width: 1,
+                        color: Colors.grey.shade300,
+                      ),
                       const SizedBox(width: 16),
 
                       // Department Filters
-                      _buildFilterChip('All Depts', 'ALL',
-                          _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'All Depts',
+                        'ALL',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Software Engineering',
-                          'Software Engineering', _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'Software Engineering',
+                        'Software Engineering',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Product & UI/UX', 'Product & UI/UX',
-                          _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'Product & UI/UX',
+                        'Product & UI/UX',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('DevOps & Cloud', 'DevOps & Cloud',
-                          _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'DevOps & Cloud',
+                        'DevOps & Cloud',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Quality Assurance (QA)',
-                          'Quality Assurance (QA)', _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'Quality Assurance (QA)',
+                        'Quality Assurance (QA)',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFilterChip('IT Support & Security',
-                          'IT Support & Security', _selectedDepartmentFilter,
-                          (v) => setState(() => _selectedDepartmentFilter = v)),
+                      _buildFilterChip(
+                        'IT Support & Security',
+                        'IT Support & Security',
+                        _selectedDepartmentFilter,
+                        (v) => setState(() => _selectedDepartmentFilter = v),
+                      ),
                     ],
                   ),
                 ),
@@ -218,8 +257,11 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline,
-                              size: 48, color: Colors.red),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red,
+                          ),
                           const SizedBox(height: 12),
                           Text('Failed to load employees: ${snapshot.error}'),
                         ],
@@ -229,7 +271,10 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                 }
 
                 final scoped = widget.teamScoped
-                    ? TeamScope.reportsFor(widget.adminProfile, snapshot.data ?? [])
+                    ? TeamScope.reportsFor(
+                        widget.adminProfile,
+                        snapshot.data ?? [],
+                      )
                     : (snapshot.data ?? []);
                 final employees = _filterEmployees(scoped);
 
@@ -276,8 +321,11 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off_rounded,
-                            size: 48, color: Colors.grey.shade400),
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'No matching employees found.',
@@ -303,7 +351,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                   itemCount: employees.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final emp = employees[index];
                     return _EmployeeCard(
@@ -312,8 +361,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                EmployeeDetailScreen(employee: emp),
+                            builder: (_) => EmployeeDetailScreen(employee: emp),
                           ),
                         );
                       },
@@ -352,112 +400,108 @@ class _EmployeeCard extends StatelessWidget {
   final UserProfile employee;
   final VoidCallback onTap;
 
-  const _EmployeeCard({
-    required this.employee,
-    required this.onTap,
-  });
+  const _EmployeeCard({required this.employee, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isActive = employee.isActive;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              UserAvatar(
-                avatarUrl: employee.avatarUrl,
-                name: employee.name,
-                radius: 24,
-                backgroundColor: isActive
-                    ? theme.colorScheme.primaryContainer
-                    : Colors.red.shade100,
-                textColor: isActive
-                    ? theme.colorScheme.primary
-                    : Colors.red.shade800,
-                fontSize: 20,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            employee.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (employee.employeeId.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
+    return MotionCard(
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                UserAvatar(
+                  avatarUrl: employee.avatarUrl,
+                  name: employee.name,
+                  radius: 24,
+                  backgroundColor: isActive
+                      ? theme.colorScheme.primaryContainer
+                      : Colors.red.shade100,
+                  textColor: isActive
+                      ? theme.colorScheme.primary
+                      : Colors.red.shade800,
+                  fontSize: 20,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
                             child: Text(
-                              employee.employeeId,
+                              employee.name,
                               style: const TextStyle(
-                                fontSize: 10,
-                                fontFamily: 'monospace',
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isActive ? Colors.green : Colors.red,
+                          if (employee.employeeId.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                employee.employeeId,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isActive ? Colors.green : Colors.red,
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${employee.designation} • ${employee.department}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${employee.designation} • ${employee.department}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      employee.email,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
+                      const SizedBox(height: 2),
+                      Text(
+                        employee.email,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),

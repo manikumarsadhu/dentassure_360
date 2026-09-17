@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/user_profile.dart';
 import '../navigation/app_nav.dart';
+import '../theme/app_motion.dart';
+import 'app_logo.dart';
 import 'user_avatar.dart';
 
 class AppShell extends StatelessWidget {
@@ -49,7 +51,7 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppNav.portalTitle(user)),
+        title: const AppHeaderLogo(height: 38, maxWidth: 176),
         actions: [
           IconButton(
             tooltip: 'Sign Out',
@@ -90,15 +92,21 @@ class _NavSidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         border: Border(
-          right: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+          right: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.6),
+          ),
         ),
       ),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: AppHeaderLogo(height: 42, maxWidth: 228),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: InkWell(
                 onTap: onOpenProfile,
                 borderRadius: BorderRadius.circular(12),
@@ -158,38 +166,42 @@ class _NavSidebar extends StatelessWidget {
                     for (final item in group.items)
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 2),
-                        child: ListTile(
-                          selected: selectedId == item.id,
-                          selectedTileColor: scheme.primaryContainer,
-                          selectedColor: scheme.onPrimaryContainer,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          leading: Icon(
-                            item.icon,
-                            color: selectedId == item.id
-                                ? scheme.primary
-                                : scheme.onSurfaceVariant,
-                          ),
-                          title: Text(
-                            item.label,
-                            style: TextStyle(
-                              fontWeight: selectedId == item.id
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              fontSize: 14,
+                          horizontal: 10,
+                          vertical: 2,
+                        ),
+                        child: PressableScale(
+                          child: ListTile(
+                            selected: selectedId == item.id,
+                            selectedTileColor: scheme.primaryContainer,
+                            selectedColor: scheme.onPrimaryContainer,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            leading: Icon(
+                              item.icon,
                               color: selectedId == item.id
                                   ? scheme.primary
-                                  : scheme.onSurface,
+                                  : scheme.onSurfaceVariant,
                             ),
+                            title: Text(
+                              item.label,
+                              style: TextStyle(
+                                fontWeight: selectedId == item.id
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                fontSize: 14,
+                                color: selectedId == item.id
+                                    ? scheme.primary
+                                    : scheme.onSurface,
+                              ),
+                            ),
+                            onTap: () {
+                              onSelect(item.id);
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
                           ),
-                          onTap: () {
-                            onSelect(item.id);
-                            if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop();
-                            }
-                          },
                         ),
                       ),
                   ],
