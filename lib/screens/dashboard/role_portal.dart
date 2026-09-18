@@ -98,6 +98,8 @@ class _RolePortalState extends State<RolePortal> {
         return OnboardingScreen(viewer: user);
       case 'letters':
         return LettersScreen(viewer: user);
+      case 'myLetters':
+        return LettersScreen(viewer: user, personalOnly: true);
       case 'attendance':
         return AdminAttendanceScreen(
           adminProfile: user,

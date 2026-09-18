@@ -4,15 +4,13 @@ import 'package:flutter/services.dart';
 import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import 'edit_employee_screen.dart';
+import '../../widgets/profile_photo_viewer.dart';
 import '../../widgets/user_avatar.dart';
 
 class EmployeeDetailScreen extends StatefulWidget {
   final UserProfile employee;
 
-  const EmployeeDetailScreen({
-    super.key,
-    required this.employee,
-  });
+  const EmployeeDetailScreen({super.key, required this.employee});
 
   @override
   State<EmployeeDetailScreen> createState() => _EmployeeDetailScreenState();
@@ -34,7 +32,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isCurrentlyActive ? 'Suspend Employee?' : 'Activate Employee?'),
+        title: Text(
+          isCurrentlyActive ? 'Suspend Employee?' : 'Activate Employee?',
+        ),
         content: Text(
           isCurrentlyActive
               ? 'Are you sure you want to suspend ${emp.name}? They will be blocked from logging in until reactivated.'
@@ -69,10 +69,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            '${emp.name} is now $newStatus.',
-          ),
-          backgroundColor: newStatus == 'ACTIVE' ? Colors.green : Colors.orange.shade800,
+          content: Text('${emp.name} is now $newStatus.'),
+          backgroundColor: newStatus == 'ACTIVE'
+              ? Colors.green
+              : Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -191,15 +191,34 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        UserAvatar(
-                          avatarUrl: emp.avatarUrl,
-                          name: emp.name,
-                          radius: 36,
-                          backgroundColor: emp.isActive
-                              ? theme.colorScheme.primary
-                              : Colors.red.shade700,
-                          textColor: theme.colorScheme.onPrimary,
-                          fontSize: 32,
+                        MouseRegion(
+                          cursor: emp.avatarUrl.trim().isEmpty
+                              ? SystemMouseCursors.basic
+                              : SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: emp.avatarUrl.trim().isEmpty
+                                ? null
+                                : () => ProfilePhotoViewer.open(
+                                    context,
+                                    avatarUrl: emp.avatarUrl,
+                                    name: emp.name,
+                                  ),
+                            child: Tooltip(
+                              message: emp.avatarUrl.trim().isEmpty
+                                  ? 'No profile photo'
+                                  : 'View photo',
+                              child: UserAvatar(
+                                avatarUrl: emp.avatarUrl,
+                                name: emp.name,
+                                radius: 36,
+                                backgroundColor: emp.isActive
+                                    ? theme.colorScheme.primary
+                                    : Colors.red.shade700,
+                                textColor: theme.colorScheme.onPrimary,
+                                fontSize: 32,
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -224,7 +243,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primary,
                                 borderRadius: BorderRadius.circular(12),
@@ -241,7 +262,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: emp.isActive
                                     ? Colors.green.shade600
@@ -287,12 +310,15 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),                  ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Column(
                     children: [
                       _DetailTile(
                         label: 'Employee ID',
-                        value: emp.employeeId.isNotEmpty ? emp.employeeId : 'N/A',
+                        value: emp.employeeId.isNotEmpty
+                            ? emp.employeeId
+                            : 'N/A',
                         icon: Icons.tag_rounded,
                       ),
                       const Divider(height: 1),
@@ -339,13 +365,16 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),                  ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.email_outlined),
-                        title: const Text('Email Address',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        title: const Text(
+                          'Email Address',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         subtitle: Text(
                           emp.email,
                           style: const TextStyle(
@@ -370,8 +399,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.phone_outlined),
-                        title: const Text('Phone Number',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        title: const Text(
+                          'Phone Number',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         subtitle: Text(
                           emp.phone.isNotEmpty ? emp.phone : 'Not provided',
                           style: const TextStyle(
@@ -384,10 +415,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                 icon: const Icon(Icons.copy, size: 18),
                                 onPressed: () {
                                   Clipboard.setData(
-                                      ClipboardData(text: emp.phone));
+                                    ClipboardData(text: emp.phone),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Phone copied to clipboard'),
+                                      content: Text(
+                                        'Phone copied to clipboard',
+                                      ),
                                       duration: Duration(seconds: 2),
                                       behavior: SnackBarBehavior.floating,
                                     ),
@@ -417,7 +451,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               ? Colors.red.shade700
                               : Colors.green.shade700,
                         ),
-                        onPressed: _togglingStatus ? null : () => _toggleStatus(emp),
+                        onPressed: _togglingStatus
+                            ? null
+                            : () => _toggleStatus(emp),
                         icon: Icon(
                           emp.isActive
                               ? Icons.block_flipped
@@ -475,10 +511,7 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -500,14 +533,13 @@ class _DetailTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: Colors.grey.shade600),
-      title: Text(label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
       subtitle: Text(
         value,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../timesheet/timesheet_screen.dart';
 import '../expenses/expenses_screen.dart';
 import '../assets/assets_screen.dart';
 import '../payslips/payslips_screen.dart';
+import '../letters/letters_screen.dart';
 import '../../widgets/live_now.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/user_avatar.dart';
@@ -332,6 +333,30 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                   ),
                   _workspaceCard(
                     index: 6,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.indigo.shade50,
+                      child: Icon(
+                        Icons.mail_outline,
+                        color: Colors.indigo.shade700,
+                      ),
+                    ),
+                    title: 'My Letters',
+                    subtitle: 'Offer and increment letters',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LettersScreen(
+                            viewer: user,
+                            personalOnly: true,
+                            embedded: false,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _workspaceCard(
+                    index: 7,
                     leading: user.avatarUrl.isNotEmpty
                         ? UserAvatar(
                             avatarUrl: user.avatarUrl,

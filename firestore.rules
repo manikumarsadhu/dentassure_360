@@ -260,6 +260,17 @@ service cloud.firestore {
         (resource == null || sameCompanyDoc() || sameCompanyCreate());
     }
 
+    match /letters/{letterId} {
+      allow read: if isSignedIn() && (
+        isPlatformAdmin() ||
+        resource.data.uid == request.auth.uid ||
+        (isPeopleOps() && sameCompanyDoc())
+      );
+
+      allow create, update, delete: if isPeopleOps() &&
+        (resource == null || sameCompanyDoc() || sameCompanyCreate());
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

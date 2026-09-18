@@ -5,6 +5,7 @@ import '../../models/user_profile.dart';
 import '../../services/firestore_service.dart';
 import '../employee/add_employee_screen.dart';
 import '../../theme/app_motion.dart';
+import '../letters/generate_letter_flow.dart';
 
 class RecruitmentScreen extends StatefulWidget {
   final UserProfile viewer;
@@ -105,41 +106,59 @@ class _RecruitmentScreenState extends State<RecruitmentScreen> {
                       child: ListTile(
                         title: Text(c.name),
                         subtitle: Text('${c.email} • ${c.role}'),
-                        trailing: DropdownButton<String>(
-                          value: c.stage,
-                          items: stages
-                              .map(
-                                (s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)),
-                              )
-                              .toList(),
-                          onChanged: widget.viewer.isPeopleOps
-                              ? (stage) async {
-                                  if (stage == null) return;
-                                  await _firestore.saveCandidate(
-                                    RecruitmentCandidate(
-                                      id: c.id,
-                                      companyId: c.companyId,
-                                      name: c.name,
-                                      email: c.email,
-                                      phone: c.phone,
-                                      role: c.role,
-                                      stage: stage,
-                                      notes: c.notes,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.viewer.isPeopleOps)
+                              IconButton(
+                                tooltip: 'Generate offer',
+                                onPressed: () => GenerateLetterFlow.startOffer(
+                                  context: context,
+                                  viewer: widget.viewer,
+                                  candidate: c,
+                                ),
+                                icon: const Icon(Icons.mail_outline),
+                              ),
+                            DropdownButton<String>(
+                              value: c.stage,
+                              items: stages
+                                  .map(
+                                    (s) => DropdownMenuItem(
+                                      value: s,
+                                      child: Text(s),
                                     ),
-                                  );
-                                  if (stage == 'HIRED' && context.mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => AddEmployeeScreen(
-                                          adminProfile: widget.viewer,
+                                  )
+                                  .toList(),
+                              onChanged: widget.viewer.isPeopleOps
+                                  ? (stage) async {
+                                      if (stage == null) return;
+                                      await _firestore.saveCandidate(
+                                        RecruitmentCandidate(
+                                          id: c.id,
+                                          companyId: c.companyId,
+                                          name: c.name,
+                                          email: c.email,
+                                          phone: c.phone,
+                                          role: c.role,
+                                          stage: stage,
+                                          notes: c.notes,
                                         ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              : null,
+                                      );
+                                      if (stage == 'HIRED' &&
+                                          context.mounted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => AddEmployeeScreen(
+                                              adminProfile: widget.viewer,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
+                            ),
+                          ],
                         ),
                       ),
                     ),

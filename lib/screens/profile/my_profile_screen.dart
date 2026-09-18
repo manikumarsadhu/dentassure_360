@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
 import '../../utils/auth_error_handler.dart';
+import '../../widgets/profile_photo_viewer.dart';
 import '../../widgets/user_avatar.dart';
 
 class MyProfileScreen extends StatefulWidget {
@@ -35,6 +36,19 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   // AVATAR PICKING & UPLOAD METHODS
   // ==========================================
 
+  void _viewProfilePhoto(UserProfile profile) {
+    if (_uploadingAvatar) return;
+    if (profile.avatarUrl.trim().isEmpty) {
+      _showAvatarOptions(profile);
+      return;
+    }
+    ProfilePhotoViewer.open(
+      context,
+      avatarUrl: profile.avatarUrl,
+      name: profile.name,
+    );
+  }
+
   void _showAvatarOptions(UserProfile profile) {
     showModalBottomSheet(
       context: context,
@@ -57,6 +71,29 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                 ),
                 const Divider(),
+                if (profile.avatarUrl.trim().isNotEmpty)
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFFEDE7F6),
+                      child: Icon(
+                        Icons.zoom_out_map_rounded,
+                        color: Color(0xFF5E35B1),
+                      ),
+                    ),
+                    title: const Text(
+                      'View Photo',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text('Open full-screen enlarged view'),
+                    onTap: () {
+                      Navigator.pop(bottomSheetContext);
+                      ProfilePhotoViewer.open(
+                        context,
+                        avatarUrl: profile.avatarUrl,
+                        name: profile.name,
+                      );
+                    },
+                  ),
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFE8F0FE),
@@ -663,41 +700,54 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         Stack(
                           alignment: Alignment.bottomRight,
                           children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: UserAvatar(
-                                key: ValueKey(profile.avatarUrl),
-                                avatarUrl: profile.avatarUrl,
-                                name: profile.name,
-                                radius: 48,
-                                fontSize: 40,
-                                backgroundColor: profile.isPlatformAdmin
-                                    ? Colors.indigo.shade400
-                                    : theme.colorScheme.primary,
-                                textColor: Colors.white,
-                                child: _uploadingAvatar
-                                    ? const SizedBox(
-                                        width: 32,
-                                        height: 32,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 3,
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () => _viewProfilePhoto(profile),
+                                child: Tooltip(
+                                  message: profile.avatarUrl.trim().isEmpty
+                                      ? 'Add profile photo'
+                                      : 'View photo',
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 3,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
-                                      )
-                                    : null,
+                                      ],
+                                    ),
+                                    child: UserAvatar(
+                                      key: ValueKey(profile.avatarUrl),
+                                      avatarUrl: profile.avatarUrl,
+                                      name: profile.name,
+                                      radius: 48,
+                                      fontSize: 40,
+                                      backgroundColor: profile.isPlatformAdmin
+                                          ? Colors.indigo.shade400
+                                          : theme.colorScheme.primary,
+                                      textColor: Colors.white,
+                                      child: _uploadingAvatar
+                                          ? const SizedBox(
+                                              width: 32,
+                                              height: 32,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 3,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                             // Camera Icon Button

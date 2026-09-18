@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:dentassure_360/models/attendance.dart';
 import 'package:dentassure_360/models/company.dart';
+import 'package:dentassure_360/models/hr_letter.dart';
 import 'package:dentassure_360/models/leave_balance.dart';
 import 'package:dentassure_360/models/leave_request.dart';
 import 'package:dentassure_360/models/payslip.dart';
@@ -13,6 +15,7 @@ import 'package:dentassure_360/models/timesheet_entry.dart';
 import 'package:dentassure_360/models/user_profile.dart';
 import 'package:dentassure_360/utils/auth_error_handler.dart';
 import 'package:dentassure_360/utils/team_scope.dart';
+import 'package:dentassure_360/widgets/profile_photo_viewer.dart';
 import 'package:dentassure_360/widgets/user_avatar.dart';
 
 void main() {
@@ -206,6 +209,96 @@ void main() {
       final second = getUserAvatarImageProvider(url);
       expect(first, isNotNull);
       expect(identical(first, second), isTrue);
+    });
+  });
+
+  group('ProfilePhotoViewer', () {
+    const samplePhotoUrl =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    testWidgets('opens the enlarge screen for a valid photo', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: TextButton(
+                  onPressed: () => ProfilePhotoViewer.open(
+                    context,
+                    avatarUrl: samplePhotoUrl,
+                    name: 'Aman Sharma',
+                  ),
+                  child: const Text('Open photo'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open photo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProfilePhotoViewer), findsOneWidget);
+      expect(find.text('Aman Sharma'), findsOneWidget);
+      expect(find.text('Pinch or double-tap to zoom'), findsOneWidget);
+      expect(find.byTooltip('Close'), findsOneWidget);
+    });
+
+    testWidgets('close button pops the enlarge screen', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: TextButton(
+                  onPressed: () => ProfilePhotoViewer.open(
+                    context,
+                    avatarUrl: samplePhotoUrl,
+                    name: 'Aman Sharma',
+                  ),
+                  child: const Text('Open photo'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open photo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProfilePhotoViewer), findsNothing);
+      expect(find.text('Open photo'), findsOneWidget);
+    });
+
+    testWidgets('does not open when there is no photo', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: TextButton(
+                  onPressed: () => ProfilePhotoViewer.open(
+                    context,
+                    avatarUrl: '',
+                    name: 'Aman Sharma',
+                  ),
+                  child: const Text('Open photo'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open photo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProfilePhotoViewer), findsNothing);
+      expect(find.text('No profile photo to view.'), findsOneWidget);
     });
   });
 
@@ -472,11 +565,7 @@ void main() {
 
       final onLunch = att.copyWith(
         breaks: [
-          AttendanceBreak(
-            id: 'LUNCH_2',
-            type: 'LUNCH',
-            start: lunchStart,
-          ),
+          AttendanceBreak(id: 'LUNCH_2', type: 'LUNCH', start: lunchStart),
         ],
       );
       expect(onLunch.isOnBreak, isTrue);
@@ -565,11 +654,7 @@ void main() {
   });
 
   group('HoursEngine', () {
-    final company = Company(
-      id: 'c1',
-      name: 'Acme',
-      createdBy: 'u0',
-    );
+    final company = Company(id: 'c1', name: 'Acme', createdBy: 'u0');
     final officeDay = UserProfile(
       uid: 'e1',
       companyId: 'c1',
@@ -641,15 +726,15 @@ void main() {
         HoursEngine.isLateAt(DateTime(2026, 9, 17, 21, 0), shift),
         isFalse,
       );
-      expect(
-        HoursEngine.isLateAt(DateTime(2026, 9, 18, 0, 30), shift),
-        isTrue,
-      );
+      expect(HoursEngine.isLateAt(DateTime(2026, 9, 18, 0, 30), shift), isTrue);
       expect(
         HoursEngine.isLateAt(DateTime(2026, 9, 17, 20, 50), shift),
         isFalse,
       );
-      expect(HoursEngine.shiftFor(company, nightWorker).crossesMidnight, isTrue);
+      expect(
+        HoursEngine.shiftFor(company, nightWorker).crossesMidnight,
+        isTrue,
+      );
       expect(HoursEngine.expectedMinutes(company, shift), 540);
     });
   });
@@ -665,17 +750,13 @@ void main() {
         contains('already registered'),
       );
 
-      final invalidCred = FirebaseAuthException(
-        code: 'invalid-credential',
-      );
+      final invalidCred = FirebaseAuthException(code: 'invalid-credential');
       expect(
         AuthErrorHandler.getErrorMessage(invalidCred),
         contains('Incorrect email or password'),
       );
 
-      final networkErr = FirebaseAuthException(
-        code: 'network-request-failed',
-      );
+      final networkErr = FirebaseAuthException(code: 'network-request-failed');
       expect(
         AuthErrorHandler.getErrorMessage(networkErr),
         contains('internet connection'),
@@ -771,6 +852,81 @@ void main() {
       expect(slip.allowances, 30000);
       expect(slip.deductions, 6000);
       expect(slip.netPay, 94000);
+    });
+  });
+
+  group('HrLetter model', () {
+    test('offer letter serializes and builds a stable PDF filename', () {
+      final joining = DateTime(2026, 10, 1);
+      final created = DateTime(2026, 9, 18);
+      final letter = HrLetter(
+        id: 'let_1',
+        type: HrLetter.typeOffer,
+        companyId: 'c1',
+        companyName: 'Dentassure Technologies',
+        companyAddress: 'Hyderabad',
+        uid: 'u1',
+        recipientName: 'Aman Sharma',
+        recipientEmail: 'aman@example.com',
+        designation: 'Flutter Developer',
+        department: 'Engineering',
+        monthlySalary: 80000,
+        joiningDate: joining,
+        issuedByUid: 'hr1',
+        issuedByName: 'Priya HR',
+        createdAt: created,
+      ).withRenderedBody();
+
+      expect(letter.isOffer, isTrue);
+      expect(letter.displayType, 'Offer letter');
+      expect(letter.pdfFilename, 'Offer_Aman_Sharma_2026-09-18.pdf');
+      expect(letter.body, contains('Aman Sharma'));
+      expect(letter.body, contains('Flutter Developer'));
+      expect(letter.body, contains('₹80000'));
+      expect(letter.body, contains('1 Oct 2026'));
+
+      final map = letter.toMap();
+      expect(map['type'], 'OFFER');
+      expect(map['joiningDate'], isA<Timestamp>());
+      expect(map['body'], isNotEmpty);
+
+      final fromMap = HrLetter.fromMap(map, docId: 'let_1');
+      expect(fromMap.recipientName, 'Aman Sharma');
+      expect(fromMap.monthlySalary, 80000);
+      expect(fromMap.joiningDate?.day, 1);
+      expect(fromMap.pdfFilename, 'Offer_Aman_Sharma_2026-09-18.pdf');
+    });
+
+    test('increment letter serializes and builds a stable PDF filename', () {
+      final effective = DateTime(2026, 11, 1);
+      final created = DateTime(2026, 9, 18);
+      final letter = HrLetter(
+        id: 'let_2',
+        type: HrLetter.typeIncrement,
+        companyId: 'c1',
+        companyName: 'Dentassure Technologies',
+        uid: 'u1',
+        recipientName: 'Aman Sharma',
+        designation: 'Senior Flutter Developer',
+        monthlySalary: 95000,
+        previousSalary: 80000,
+        effectiveDate: effective,
+        issuedByName: 'Priya HR',
+        createdAt: created,
+      ).withRenderedBody();
+
+      expect(letter.isIncrement, isTrue);
+      expect(letter.title, 'Salary Increment Letter');
+      expect(letter.pdfFilename, 'Increment_Aman_Sharma_2026-09-18.pdf');
+      expect(letter.body, contains('₹80000'));
+      expect(letter.body, contains('₹95000'));
+      expect(letter.body, contains('1 Nov 2026'));
+
+      final fromMap = HrLetter.fromMap(letter.toMap(), docId: 'let_2');
+      expect(fromMap.previousSalary, 80000);
+      expect(fromMap.monthlySalary, 95000);
+      expect(fromMap.effectiveDate?.month, 11);
+      expect(fromMap.pdfFilename, 'Increment_Aman_Sharma_2026-09-18.pdf');
     });
   });
 }

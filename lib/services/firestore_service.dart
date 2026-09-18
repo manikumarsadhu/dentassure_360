@@ -6,6 +6,7 @@ import '../models/punch_capture.dart';
 import '../models/company_asset.dart';
 import '../models/expense_claim.dart';
 import '../models/leave_request.dart';
+import '../models/hr_letter.dart';
 import '../models/payslip.dart';
 import '../models/performance_goal.dart';
 import '../models/recruitment_candidate.dart';
@@ -1117,5 +1118,54 @@ class FirestoreService {
       list.sort((a, b) => b.month.compareTo(a.month));
       return list;
     });
+  }
+
+  // ==========================================
+  // HR LETTERS
+  // ==========================================
+
+  Future<String> issueLetter(HrLetter letter) async {
+    final docRef = letter.id.isNotEmpty
+        ? _firestore.collection('letters').doc(letter.id)
+        : _firestore.collection('letters').doc();
+    await docRef.set({
+      ...letter.toMap(),
+      'id': docRef.id,
+    });
+    return docRef.id;
+  }
+
+  Stream<List<HrLetter>> streamEmployeeLetters(String uid) {
+    return _firestore
+        .collection('letters')
+        .where('uid', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => HrLetter.fromMap(doc.data(), docId: doc.id))
+          .toList();
+      list.sort(_compareLettersNewestFirst);
+      return list;
+    });
+  }
+
+  Stream<List<HrLetter>> streamCompanyLetters(String companyId) {
+    return _firestore
+        .collection('letters')
+        .where('companyId', isEqualTo: companyId)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => HrLetter.fromMap(doc.data(), docId: doc.id))
+          .toList();
+      list.sort(_compareLettersNewestFirst);
+      return list;
+    });
+  }
+
+  int _compareLettersNewestFirst(HrLetter a, HrLetter b) {
+    final ad = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bd = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bd.compareTo(ad);
   }
 }

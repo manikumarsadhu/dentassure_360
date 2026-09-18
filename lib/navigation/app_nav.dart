@@ -162,6 +162,10 @@ class AppNav {
                 label: 'My Timesheet',
                 icon: Icons.timer_outlined),
             NavItem(
+                id: 'myLetters',
+                label: 'My Letters',
+                icon: Icons.mail_outline),
+            NavItem(
                 id: 'profile',
                 label: 'My Profile',
                 icon: Icons.account_circle_outlined),
@@ -208,6 +212,10 @@ class AppNav {
                 label: 'My Timesheet',
                 icon: Icons.timer_outlined),
             NavItem(
+                id: 'myLetters',
+                label: 'My Letters',
+                icon: Icons.mail_outline),
+            NavItem(
                 id: 'profile',
                 label: 'My Profile',
                 icon: Icons.account_circle_outlined),
@@ -238,6 +246,10 @@ class AppNav {
               id: 'payslips',
               label: 'Payslips',
               icon: Icons.payments_outlined),
+          NavItem(
+              id: 'myLetters',
+              label: 'My Letters',
+              icon: Icons.mail_outline),
           NavItem(
               id: 'profile',
               label: 'My Profile',
