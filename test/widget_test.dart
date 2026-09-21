@@ -13,6 +13,7 @@ import 'package:dentassure_360/models/punch_capture.dart';
 import 'package:dentassure_360/models/shift_policy.dart';
 import 'package:dentassure_360/models/timesheet_entry.dart';
 import 'package:dentassure_360/models/user_profile.dart';
+import 'package:dentassure_360/services/indian_payroll_engine.dart';
 import 'package:dentassure_360/utils/auth_error_handler.dart';
 import 'package:dentassure_360/utils/team_scope.dart';
 import 'package:dentassure_360/widgets/profile_photo_viewer.dart';
@@ -471,6 +472,36 @@ void main() {
       expect(fromMap.formattedWorkingDuration, '8h 03m');
       expect(fromMap.formattedClockInWithSeconds, '09:02:00 AM');
       expect(fromMap.breaks, isEmpty);
+      expect(fromMap.isRegularized, isFalse);
+    });
+
+    test('Attendance correction fields serialize', () {
+      final correctedAt = DateTime(2026, 9, 21, 11, 0);
+      final att = Attendance(
+        id: 'user1_2026-09-21',
+        uid: 'user1',
+        companyId: 'comp1',
+        employeeId: 'EMP-001',
+        employeeName: 'Mani',
+        date: '2026-09-21',
+        clockIn: DateTime(2026, 9, 21, 9, 30),
+        clockOut: DateTime(2026, 9, 21, 18, 30),
+        status: 'PRESENT',
+        workingMinutes: 540,
+        regularizedByUid: 'hr1',
+        regularizedByName: 'Dany',
+        regularizedAt: correctedAt,
+        regularizationReason: 'Clocked out by mistake',
+      );
+      final map = att.toMap();
+      expect(map['regularizedByUid'], 'hr1');
+      expect(map['regularizedByName'], 'Dany');
+      expect(map['regularizationReason'], 'Clocked out by mistake');
+      expect(map['regularizedAt'], isA<Timestamp>());
+      final fromMap = Attendance.fromMap(map, docId: 'user1_2026-09-21');
+      expect(fromMap.isRegularized, isTrue);
+      expect(fromMap.regularizedByName, 'Dany');
+      expect(fromMap.regularizationReason, 'Clocked out by mistake');
     });
 
     test('PunchCapture serializes face, GPS and Wi-Fi proof', () {
@@ -626,6 +657,7 @@ void main() {
       expect(fromMap.status, 'ACTIVE');
       expect(fromMap.isActive, isTrue);
       expect(fromMap.isSuspended, isFalse);
+      expect(fromMap.pfRestrictToStatutoryCeiling, isTrue);
       expect(fromMap.timezone, 'Asia/Kolkata');
       expect(fromMap.dayShift.startHm, '09:30');
       expect(fromMap.dayShift.endHm, '18:30');
@@ -649,6 +681,7 @@ void main() {
       expect(fromMap.dayShift.endHm, '18:30');
       expect(fromMap.fullDayHours, 8);
       expect(fromMap.halfDayHours, 4);
+      expect(fromMap.pfRestrictToStatutoryCeiling, isTrue);
       expect(fromMap.nightShift.crossesMidnight, isTrue);
     });
   });
@@ -699,6 +732,28 @@ void main() {
       expect(ot.overtimeMinutes, 60);
     });
 
+    test('Edited clock-out time changes half-day vs full day', () {
+      final earlyOut = HoursEngine.evaluate(
+        company: company,
+        user: officeDay,
+        clockIn: DateTime(2026, 9, 21, 9, 30),
+        clockOut: DateTime(2026, 9, 21, 12, 30),
+        workedMinutes: 180,
+      );
+      expect(earlyOut.status, 'HALF_DAY');
+      expect(earlyOut.workedMinutes, 180);
+
+      final fullDay = HoursEngine.evaluate(
+        company: company,
+        user: officeDay,
+        clockIn: DateTime(2026, 9, 21, 9, 30),
+        clockOut: DateTime(2026, 9, 21, 18, 30),
+        workedMinutes: 540,
+      );
+      expect(fullDay.status, 'PRESENT');
+      expect(fullDay.overtimeMinutes, 60);
+    });
+
     test('Freelance skips late and half-day', () {
       final result = HoursEngine.evaluate(
         company: company,
@@ -736,6 +791,34 @@ void main() {
         isTrue,
       );
       expect(HoursEngine.expectedMinutes(company, shift), 540);
+    });
+
+    test('Day shift ignores yesterday open punch so today can clock in', () {
+      final yesterday = Attendance(
+        id: 'e1_2026-09-16',
+        uid: 'e1',
+        companyId: 'c1',
+        employeeId: 'EMP-001',
+        employeeName: 'Dev',
+        date: '2026-09-16',
+        clockIn: DateTime(2026, 9, 16, 9, 30),
+      );
+      expect(
+        HoursEngine.pickLiveAttendance(
+          primary: null,
+          previous: yesterday,
+          carryOpenPrevious: false,
+        ),
+        isNull,
+      );
+      expect(
+        HoursEngine.pickLiveAttendance(
+          primary: null,
+          previous: yesterday,
+          carryOpenPrevious: true,
+        )?.id,
+        'e1_2026-09-16',
+      );
     });
   });
 
@@ -838,20 +921,140 @@ void main() {
       expect(fromMap.reportingManagerUid, 'lead1');
     });
 
-    test('Payslip.fromSalary breakdown', () {
+    test('Payslip.fromSalary uses statutory PF ESI and new-regime TDS', () {
       final slip = Payslip.fromSalary(
-        id: 'u1_2026-09',
+        id: 'u1_2026-04',
         companyId: 'c1',
         uid: 'u1',
         employeeName: 'Dev',
-        month: '2026-09',
+        month: '2026-04',
         monthlySalary: 100000,
       );
       expect(slip.basic, 50000);
       expect(slip.hra, 20000);
       expect(slip.allowances, 30000);
-      expect(slip.deductions, 6000);
-      expect(slip.netPay, 94000);
+      expect(slip.employeePf, 1800);
+      expect(slip.employeeEsi, 0);
+      expect(slip.tds, 0);
+      expect(slip.deductions, 1800);
+      expect(slip.netPay, 98200);
+      expect(slip.taxRegime, 'NEW');
+    });
+
+    test('Payslip.fromMap keeps legacy slips readable', () {
+      final fromMap = Payslip.fromMap({
+        'companyId': 'c1',
+        'uid': 'u1',
+        'employeeName': 'Dev',
+        'month': '2026-08',
+        'basic': 50000,
+        'hra': 20000,
+        'allowances': 30000,
+        'deductions': 6000,
+        'netPay': 94000,
+      }, docId: 'legacy_1');
+      expect(fromMap.isLegacy, isTrue);
+      expect(fromMap.resolvedGross, 100000);
+      expect(fromMap.employeePf, 0);
+      expect(fromMap.pdfFilename, 'Payslip_Dev_2026-08.pdf');
+    });
+  });
+
+  group('IndianPayrollEngine', () {
+    test('₹18,000: ESI on, PF on full basic, TDS 0', () {
+      final calc = IndianPayrollEngine.compute(
+        monthlySalary: 18000,
+        month: '2026-09',
+      );
+      expect(calc.basic, 9000);
+      expect(calc.hra, 3600);
+      expect(calc.allowances, 5400);
+      expect(calc.gross, 18000);
+      expect(calc.pfWages, 9000);
+      expect(calc.employeePf, 1080);
+      expect(calc.employerPf, 1080);
+      expect(calc.employerEps, 750);
+      expect(calc.employeeEsi, 135);
+      expect(calc.employerEsi, 585);
+      expect(calc.tds, 0);
+      expect(calc.netPay, 16785);
+      expect(calc.ctcMonthly, 19665);
+    });
+
+    test('₹35,000: PF capped ₹1,800, ESI 0, TDS 0', () {
+      final calc = IndianPayrollEngine.compute(
+        monthlySalary: 35000,
+        month: '2026-09',
+      );
+      expect(calc.basic, 17500);
+      expect(calc.hra, 7000);
+      expect(calc.allowances, 10500);
+      expect(calc.pfWages, 15000);
+      expect(calc.pfCeilingApplied, isTrue);
+      expect(calc.employeePf, 1800);
+      expect(calc.employerEps, 1250);
+      expect(calc.employerEpf, 550);
+      expect(calc.employeeEsi, 0);
+      expect(calc.tds, 0);
+      expect(calc.netPay, 33200);
+      expect(calc.ctcMonthly, 36800);
+    });
+
+    test('₹1,20,000 April: no ESI, PF capped, non-zero TDS after 87A cliff', () {
+      final calc = IndianPayrollEngine.compute(
+        monthlySalary: 120000,
+        month: '2026-04',
+      );
+      expect(calc.employeeEsi, 0);
+      expect(calc.employeePf, 1800);
+      expect(calc.taxableAnnual, 1365000);
+      expect(calc.annualTaxEstimate, 88140);
+      expect(calc.tds, 7345);
+      expect(calc.netPay, 110855);
+    });
+
+    test('unrestricted PF on ₹1,00,000: employee PF ₹6,000, EPS still ₹1,250', () {
+      final calc = IndianPayrollEngine.compute(
+        monthlySalary: 100000,
+        month: '2026-04',
+        pfRestrictToStatutoryCeiling: false,
+      );
+      expect(calc.basic, 50000);
+      expect(calc.pfWages, 50000);
+      expect(calc.employeePf, 6000);
+      expect(calc.employerPf, 6000);
+      expect(calc.employerEps, 1250);
+      expect(calc.employerEpf, 4750);
+    });
+
+    test('87A rebate at ₹12L taxable and marginal relief just above', () {
+      expect(IndianPayrollEngine.annualNewRegimeTax(1200000), 0);
+      expect(IndianPayrollEngine.annualNewRegimeTax(1210000), 10400);
+    });
+
+    test('YTD second month TDS is remaining tax over remaining months', () {
+      final april = IndianPayrollEngine.compute(
+        monthlySalary: 120000,
+        month: '2026-04',
+      );
+      expect(april.tds, 7345);
+      final may = IndianPayrollEngine.compute(
+        monthlySalary: 120000,
+        month: '2026-05',
+        ytdGross: april.gross,
+        ytdTds: april.tds,
+      );
+      expect(may.remainingMonths, 11);
+      expect(may.annualTaxEstimate, april.annualTaxEstimate);
+      expect(may.tds, 7345);
+    });
+
+    test('rupees in words uses Indian numbering', () {
+      expect(
+        IndianPayrollEngine.rupeesInWords(16785),
+        'Rupees Sixteen Thousand Seven Hundred Eighty Five Only',
+      );
+      expect(IndianPayrollEngine.rupeesInWords(0), 'Rupees Zero Only');
     });
   });
 

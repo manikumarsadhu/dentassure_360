@@ -106,7 +106,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
           appBar: AppBar(
             title: Row(
               children: [
-                const AppHeaderLogo(height: 36, maxWidth: 158),
+                const AppHeaderLogo(height: 36, maxWidth: 220),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -608,35 +608,11 @@ class _EmployeeShiftPanelState extends State<_EmployeeShiftPanel> {
             ),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Today's Attendance",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade600,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'STATUS: ${attendance.status}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                _AttendanceHeaderRow(
+                  title: "Today's Attendance",
+                  chipLabel: attendance.status,
+                  chipColor: Colors.green.shade600,
+                  chipTextColor: Colors.white,
                 ),
                 const SizedBox(height: 20),
                 PunchProofRow(
@@ -760,49 +736,48 @@ class _EmployeeShiftPanelState extends State<_EmployeeShiftPanel> {
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: onBreak
-                                  ? Colors.amber.shade700
-                                  : (isLate ? Colors.orange : Colors.green),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              onBreak
-                                  ? 'Status: On ${activeBreak!.label} Break'
-                                  : (isLate
-                                        ? 'Status: Late (Working)'
-                                        : 'Status: Present'),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: onBreak
-                                    ? Colors.amber.shade900
-                                    : (isLate
-                                          ? Colors.orange.shade900
-                                          : Colors.green.shade800),
-                              ),
-                            ),
-                          ),
-                        ],
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: onBreak
+                            ? Colors.amber.shade700
+                            : (isLate ? Colors.orange : Colors.green),
                       ),
                     ),
-                    Text(
-                      'Since ${attendance.formattedClockInWithSeconds}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        onBreak
+                            ? 'On ${activeBreak!.label} break'
+                            : (isLate ? 'Late (working)' : 'Present'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: onBreak
+                              ? Colors.amber.shade900
+                              : (isLate
+                                    ? Colors.orange.shade900
+                                    : Colors.green.shade800),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Since ${attendance.formattedClockInWithSeconds}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -950,32 +925,11 @@ class _EmployeeShiftPanelState extends State<_EmployeeShiftPanel> {
           ),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Today's Attendance",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Status: Not Clocked In',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
+              _AttendanceHeaderRow(
+                title: "Today's Attendance",
+                chipLabel: 'Not clocked in',
+                chipColor: Colors.grey.shade200,
+                chipTextColor: Colors.black87,
               ),
               const SizedBox(height: 20),
 
@@ -1060,6 +1014,56 @@ class _SummaryItem extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.bold,
             color: color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AttendanceHeaderRow extends StatelessWidget {
+  final String title;
+  final String chipLabel;
+  final Color chipColor;
+  final Color chipTextColor;
+
+  const _AttendanceHeaderRow({
+    required this.title,
+    required this.chipLabel,
+    required this.chipColor,
+    required this.chipTextColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: chipColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              chipLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: chipTextColor,
+              ),
+            ),
           ),
         ),
       ],

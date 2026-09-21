@@ -18,6 +18,7 @@ class Company {
   final double halfDayHours;
   final ShiftTemplate dayShift;
   final ShiftTemplate nightShift;
+  final bool pfRestrictToStatutoryCeiling;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -37,6 +38,7 @@ class Company {
     this.halfDayHours = 4,
     this.dayShift = ShiftTemplate.dayDefault,
     this.nightShift = ShiftTemplate.nightDefault,
+    this.pfRestrictToStatutoryCeiling = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -63,6 +65,7 @@ class Company {
       'halfDayHours': halfDayHours,
       'dayShift': dayShift.toMap(),
       'nightShift': nightShift.toMap(),
+      'pfRestrictToStatutoryCeiling': pfRestrictToStatutoryCeiling,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -105,6 +108,7 @@ class Company {
       dayShift: ShiftTemplate.fromMap(map['dayShift'], ShiftTemplate.dayDefault),
       nightShift:
           ShiftTemplate.fromMap(map['nightShift'], ShiftTemplate.nightDefault),
+      pfRestrictToStatutoryCeiling: map['pfRestrictToStatutoryCeiling'] != false,
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
     );
@@ -126,6 +130,7 @@ class Company {
     double? halfDayHours,
     ShiftTemplate? dayShift,
     ShiftTemplate? nightShift,
+    bool? pfRestrictToStatutoryCeiling,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -145,6 +150,8 @@ class Company {
       halfDayHours: halfDayHours ?? this.halfDayHours,
       dayShift: dayShift ?? this.dayShift,
       nightShift: nightShift ?? this.nightShift,
+      pfRestrictToStatutoryCeiling:
+          pfRestrictToStatutoryCeiling ?? this.pfRestrictToStatutoryCeiling,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

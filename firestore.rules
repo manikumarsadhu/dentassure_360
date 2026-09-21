@@ -138,14 +138,15 @@ service cloud.firestore {
         (canReadCompanyOps() && sameCompanyDoc())
       );
 
-      allow create: if isSignedIn() &&
-        request.resource.data.uid == request.auth.uid &&
-        sameCompanyCreate();
+      allow create: if isSignedIn() && sameCompanyCreate() && (
+        request.resource.data.uid == request.auth.uid ||
+        isPeopleOps()
+      );
 
       allow update: if isSignedIn() && (
         isPlatformAdmin() ||
         (resource.data.uid == request.auth.uid && sameCompanyCreate()) ||
-        (canReadCompanyOps() && sameCompanyDoc())
+        (isPeopleOps() && sameCompanyDoc())
       );
 
       allow delete: if isPlatformAdmin() || (isCompanyAdmin() && sameCompanyDoc());

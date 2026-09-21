@@ -103,7 +103,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           appBar: AppBar(
             title: Row(
               children: [
-                const AppHeaderLogo(height: 36, maxWidth: 158),
+                const AppHeaderLogo(height: 36, maxWidth: 220),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

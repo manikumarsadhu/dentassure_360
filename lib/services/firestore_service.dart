@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/attendance.dart';
@@ -74,6 +76,7 @@ class FirestoreService {
       'halfDayHours': halfDayHours,
       'dayShift': (dayShift ?? ShiftTemplate.dayDefault).toMap(),
       'nightShift': (nightShift ?? ShiftTemplate.nightDefault).toMap(),
+      'pfRestrictToStatutoryCeiling': true,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -192,6 +195,7 @@ class FirestoreService {
       'halfDayHours': company.halfDayHours,
       'dayShift': company.dayShift.toMap(),
       'nightShift': company.nightShift.toMap(),
+      'pfRestrictToStatutoryCeiling': company.pfRestrictToStatutoryCeiling,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -459,78 +463,32 @@ class FirestoreService {
     });
   }
 
-  /// Open punch for the employee's current shift date (handles night spanning midnight).
+  /// Live punch for today's calendar date. Each day is its own clock-in / clock-out
+  /// and hours total. The listener rebinds at midnight.
   Stream<Attendance?> streamCurrentShiftAttendance({
     required UserProfile user,
   }) {
-    return streamCompany(user.companyId).asyncExpand((company) {
-      final policy = company ??
-          Company(
-            id: user.companyId,
-            name: user.companyName,
-            createdBy: '',
-          );
-      final shift = HoursEngine.shiftFor(policy, user);
-      final now = DateTime.now();
-      final primary = HoursEngine.attendanceDateKey(now, shift);
-      final previous = Attendance.formatDateKey(
-        now.subtract(const Duration(days: 1)),
-      );
-      return _combineAttendanceDocs(user.uid, primary, previous);
-    });
-  }
-
-  Stream<Attendance?> _combineAttendanceDocs(
-    String uid,
-    String primaryDate,
-    String previousDate,
-  ) {
-    if (primaryDate == previousDate) {
-      return streamTodayAttendance(uid: uid, date: primaryDate);
-    }
-
-    Attendance? parse(DocumentSnapshot<Map<String, dynamic>> snapshot) {
-      if (!snapshot.exists || snapshot.data() == null) return null;
-      return Attendance.fromMap(snapshot.data()!, docId: snapshot.id);
-    }
-
-    final primaryRef =
-        _firestore.collection('attendance').doc('${uid}_$primaryDate');
-    final previousRef =
-        _firestore.collection('attendance').doc('${uid}_$previousDate');
-
     return Stream<Attendance?>.multi((controller) {
-      Attendance? primary;
-      Attendance? previous;
-      var gotPrimary = false;
-      var gotPrevious = false;
+      StreamSubscription<Attendance?>? attendanceSub;
+      Timer? timer;
+      String? listeningDate;
 
-      void emit() {
-        if (!gotPrimary || !gotPrevious) return;
-        final open = [previous, primary]
-            .whereType<Attendance>()
-            .where((a) => a.isClockedIn)
-            .toList();
-        if (open.isNotEmpty) {
-          controller.add(open.first);
-          return;
-        }
-        controller.add(primary ?? previous);
+      void attachToday() {
+        final today = Attendance.formatDateKey(DateTime.now());
+        if (today == listeningDate && attendanceSub != null) return;
+        listeningDate = today;
+        attendanceSub?.cancel();
+        attendanceSub = streamTodayAttendance(uid: user.uid, date: today).listen(
+          controller.add,
+          onError: controller.addError,
+        );
       }
 
-      final sub1 = primaryRef.snapshots().listen((s) {
-        primary = parse(s);
-        gotPrimary = true;
-        emit();
-      });
-      final sub2 = previousRef.snapshots().listen((s) {
-        previous = parse(s);
-        gotPrevious = true;
-        emit();
-      });
+      attachToday();
+      timer = Timer.periodic(const Duration(minutes: 1), (_) => attachToday());
       controller.onCancel = () async {
-        await sub1.cancel();
-        await sub2.cancel();
+        timer?.cancel();
+        await attendanceSub?.cancel();
       };
     });
   }
@@ -553,9 +511,23 @@ class FirestoreService {
     }
     final now = time ?? DateTime.now();
     final company = await _companyPolicy(user.companyId);
-    final shift = HoursEngine.shiftFor(company, user);
-    final dateKey = HoursEngine.attendanceDateKey(now, shift);
+    final dateKey = Attendance.formatDateKey(now);
     final docId = '${user.uid}_$dateKey';
+    final existingSnap =
+        await _firestore.collection('attendance').doc(docId).get();
+    if (existingSnap.exists && existingSnap.data() != null) {
+      final existing =
+          Attendance.fromMap(existingSnap.data()!, docId: existingSnap.id);
+      if (existing.isClockedIn) {
+        return existing;
+      }
+      if (existing.isCompleted) {
+        throw Exception(
+          'Already clocked out today. Clock in again tomorrow.',
+        );
+      }
+    }
+    await _closeForgottenPreviousDay(user: user, now: now);
     final hours = HoursEngine.evaluate(
       company: company,
       user: user,
@@ -594,6 +566,49 @@ class FirestoreService {
     return attendance;
   }
 
+  /// If yesterday was left clocked in, close it at 11:59 PM so hours stay on that day.
+  Future<void> _closeForgottenPreviousDay({
+    required UserProfile user,
+    required DateTime now,
+  }) async {
+    final yesterday = Attendance.formatDateKey(
+      now.subtract(const Duration(days: 1)),
+    );
+    final docRef =
+        _firestore.collection('attendance').doc('${user.uid}_$yesterday');
+    final snapshot = await docRef.get();
+    if (!snapshot.exists || snapshot.data() == null) return;
+    final previous = Attendance.fromMap(snapshot.data()!, docId: snapshot.id);
+    if (!previous.isClockedIn || previous.clockIn == null) return;
+
+    final endOfYesterday = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(seconds: 1));
+    final closedBreaks = _endedBreaks(previous, endOfYesterday);
+    final settled = previous.copyWith(
+      clockOut: endOfYesterday,
+      breaks: closedBreaks,
+    );
+    final workingMinutes = settled.netWorkedDuration(endOfYesterday).inMinutes;
+    final company = await _companyPolicy(user.companyId);
+    final hours = HoursEngine.evaluate(
+      company: company,
+      user: user,
+      clockIn: previous.clockIn!,
+      clockOut: endOfYesterday,
+      workedMinutes: workingMinutes,
+    );
+    await docRef.update({
+      'clockOut': Timestamp.fromDate(endOfYesterday),
+      'workingMinutes': workingMinutes,
+      'status': hours.status,
+      'expectedMinutes': hours.expectedMinutes,
+      'overtimeMinutes': hours.overtimeMinutes,
+      'shortfallMinutes': hours.shortfallMinutes,
+      'breaks': closedBreaks.map((b) => b.toMap()).toList(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<Attendance> _loadAttendance(String attendanceId) async {
     final snapshot =
         await _firestore.collection('attendance').doc(attendanceId).get();
@@ -625,6 +640,12 @@ class FirestoreService {
     final now = time ?? DateTime.now();
     final docRef = _firestore.collection('attendance').doc(attendanceId);
     final current = await _loadAttendance(attendanceId);
+    if (current.isCompleted) {
+      throw Exception('Already clocked out today.');
+    }
+    if (current.clockIn == null) {
+      throw Exception('Clock in before clocking out.');
+    }
     final closedBreaks = _endedBreaks(current, now);
     final settled = current.copyWith(
       clockIn: current.clockIn ?? clockInTime,
@@ -713,6 +734,99 @@ class FirestoreService {
       'breaks': breaks.map((b) => b.toMap()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// HR / company admin correction of a day's punch. Recalculates hours.
+  Future<Attendance> regularizeAttendance({
+    required UserProfile actor,
+    required UserProfile employee,
+    required String dateKey,
+    required DateTime clockIn,
+    DateTime? clockOut,
+    required bool clearClockOut,
+    required String reason,
+  }) async {
+    if (!actor.isPeopleOps) {
+      throw Exception('Only HR or company admin can correct a punch.');
+    }
+    final trimmed = reason.trim();
+    if (trimmed.isEmpty) {
+      throw Exception('A reason is required.');
+    }
+    if (Attendance.formatDateKey(clockIn) != dateKey) {
+      throw Exception('Clock-in must be on the selected date.');
+    }
+    final out = clearClockOut ? null : clockOut;
+    if (out != null && Attendance.formatDateKey(out) != dateKey) {
+      throw Exception('Clock-out must be on the selected date.');
+    }
+    if (out != null && !out.isAfter(clockIn)) {
+      throw Exception('Clock-out must be after clock-in.');
+    }
+
+    final docId = '${employee.uid}_$dateKey';
+    final docRef = _firestore.collection('attendance').doc(docId);
+    final snapshot = await docRef.get();
+    final existing = snapshot.exists && snapshot.data() != null
+        ? Attendance.fromMap(snapshot.data()!, docId: snapshot.id)
+        : null;
+
+    final settled = Attendance(
+      id: docId,
+      uid: employee.uid,
+      companyId: employee.companyId,
+      employeeId: employee.employeeId,
+      employeeName: employee.name,
+      department: employee.department,
+      reportingManagerUid: employee.reportingManagerUid,
+      date: dateKey,
+      clockIn: clockIn,
+      clockOut: out,
+      breaks: existing?.breaks ?? const [],
+      clockInCapture: existing?.clockInCapture,
+      clockOutCapture: clearClockOut || out == null
+          ? null
+          : existing?.clockOutCapture,
+      workMode: existing?.workMode.isNotEmpty == true
+          ? existing!.workMode
+          : employee.workMode,
+      shiftType: existing?.shiftType.isNotEmpty == true
+          ? existing!.shiftType
+          : employee.shiftType,
+      regularizedByUid: actor.uid,
+      regularizedByName: actor.name,
+      regularizedAt: DateTime.now(),
+      regularizationReason: trimmed,
+      createdAt: existing?.createdAt,
+    );
+    final company = await _companyPolicy(employee.companyId);
+    final workingMinutes = out == null
+        ? 0
+        : settled.netWorkedDuration(out).inMinutes;
+    final hours = HoursEngine.evaluate(
+      company: company,
+      user: employee,
+      clockIn: clockIn,
+      clockOut: out,
+      workedMinutes: workingMinutes,
+    );
+    final payload = settled
+        .copyWith(
+          status: hours.status,
+          workingMinutes: workingMinutes,
+          expectedMinutes: hours.expectedMinutes,
+          overtimeMinutes: hours.overtimeMinutes,
+          shortfallMinutes: hours.shortfallMinutes,
+        )
+        .toMap();
+    if (out == null) {
+      payload['clockOut'] = null;
+      payload['clockOutCapture'] = FieldValue.delete();
+    }
+    payload['updatedAt'] = FieldValue.serverTimestamp();
+    await docRef.set(payload, SetOptions(merge: true));
+    final saved = await docRef.get();
+    return Attendance.fromMap(saved.data()!, docId: saved.id);
   }
 
   /// Streams attendance history for an employee

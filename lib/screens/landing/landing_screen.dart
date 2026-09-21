@@ -315,7 +315,7 @@ class _BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AppHeaderLogo(height: 48, maxWidth: 200);
+    return const AppHeaderLogo(height: 48, maxWidth: 280);
   }
 }
 

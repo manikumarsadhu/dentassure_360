@@ -90,6 +90,7 @@ flutter:
   assets:
     - assets/branding/app_icon.png
     - assets/branding/header_logo.png
+    - assets/branding/header_logo_nav.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

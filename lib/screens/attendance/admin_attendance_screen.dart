@@ -59,6 +59,31 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
     }
   }
 
+  Future<void> _openCorrectPunch(
+    _EmployeeAttendanceStatus item,
+    String dateKey,
+  ) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => _CorrectPunchSheet(
+        actor: widget.adminProfile,
+        employee: item.employee,
+        attendance: item.attendance,
+        date: _selectedDate,
+        dateKey: dateKey,
+      ),
+    );
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Punch corrected for ${item.employee.name}.'),
+        ),
+      );
+    }
+  }
+
   void _setDatePreset(String preset) {
     final now = DateTime.now();
     setState(() {
@@ -552,7 +577,19 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                                     const SizedBox(height: 8),
                                 itemBuilder: (context, index) {
                                   final item = filteredList[index];
-                                  return _AttendanceRecordCard(item: item);
+                                  final canCorrect =
+                                      widget.adminProfile.isPeopleOps &&
+                                      item.status != 'LEAVE';
+                                  return _AttendanceRecordCard(
+                                    item: item,
+                                    canCorrect: canCorrect,
+                                    onCorrect: canCorrect
+                                        ? () => _openCorrectPunch(
+                                            item,
+                                            dateKey,
+                                          )
+                                        : null,
+                                  );
                                 },
                               ),
                       ),
@@ -687,8 +724,14 @@ class _DatePresetButton extends StatelessWidget {
 
 class _AttendanceRecordCard extends StatelessWidget {
   final _EmployeeAttendanceStatus item;
+  final bool canCorrect;
+  final VoidCallback? onCorrect;
 
-  const _AttendanceRecordCard({required this.item});
+  const _AttendanceRecordCard({
+    required this.item,
+    this.canCorrect = false,
+    this.onCorrect,
+  });
 
   Color _getStatusColor() {
     switch (item.status.toUpperCase()) {
@@ -717,9 +760,12 @@ class _AttendanceRecordCard extends StatelessWidget {
 
     return MotionCard(
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+        child: InkWell(
+          onTap: onCorrect,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
             children: [
               // Avatar
               CircleAvatar(
@@ -860,30 +906,264 @@ class _AttendanceRecordCard extends StatelessWidget {
                           fontStyle: FontStyle.italic,
                         ),
                       ),
+                    if (att != null && att.isRegularized) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Corrected: ${att.regularizationReason}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.deepPurple.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Status Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  item.status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+              Column(
+                children: [
+                  if (att != null && att.isRegularized)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Chip(
+                        visualDensity: VisualDensity.compact,
+                        label: const Text('Corrected'),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      item.status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
+                  if (canCorrect)
+                    IconButton(
+                      tooltip: 'Correct punch',
+                      onPressed: onCorrect,
+                      icon: const Icon(Icons.edit_calendar_outlined, size: 20),
+                    ),
+                ],
               ),
             ],
           ),
+        ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CorrectPunchSheet extends StatefulWidget {
+  final UserProfile actor;
+  final UserProfile employee;
+  final Attendance? attendance;
+  final DateTime date;
+  final String dateKey;
+
+  const _CorrectPunchSheet({
+    required this.actor,
+    required this.employee,
+    required this.attendance,
+    required this.date,
+    required this.dateKey,
+  });
+
+  @override
+  State<_CorrectPunchSheet> createState() => _CorrectPunchSheetState();
+}
+
+class _CorrectPunchSheetState extends State<_CorrectPunchSheet> {
+  final _reason = TextEditingController();
+  final _firestore = FirestoreService();
+  late TimeOfDay _inTime;
+  TimeOfDay? _outTime;
+  bool _clearOut = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final att = widget.attendance;
+    _inTime = att?.clockIn != null
+        ? TimeOfDay.fromDateTime(att!.clockIn!)
+        : const TimeOfDay(hour: 9, minute: 30);
+    _outTime = att?.clockOut != null
+        ? TimeOfDay.fromDateTime(att!.clockOut!)
+        : att == null
+        ? const TimeOfDay(hour: 18, minute: 30)
+        : null;
+    _clearOut = att != null && att.clockIn != null && att.clockOut == null;
+    if (att?.regularizationReason.isNotEmpty == true) {
+      _reason.text = att!.regularizationReason;
+    }
+  }
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  DateTime _combine(TimeOfDay time) {
+    return DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      time.hour,
+      time.minute,
+    );
+  }
+
+  Future<void> _pickIn() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _inTime,
+    );
+    if (picked != null) setState(() => _inTime = picked);
+  }
+
+  Future<void> _pickOut() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _outTime ?? const TimeOfDay(hour: 18, minute: 30),
+    );
+    if (picked != null) {
+      setState(() {
+        _outTime = picked;
+        _clearOut = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final reason = _reason.text.trim();
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a reason for this correction.')),
+      );
+      return;
+    }
+    if (!_clearOut && _outTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Set a clock-out time, or clear clock-out.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await _firestore.regularizeAttendance(
+        actor: widget.actor,
+        employee: widget.employee,
+        dateKey: widget.dateKey,
+        clockIn: _combine(_inTime),
+        clockOut: _clearOut || _outTime == null
+            ? null
+            : _combine(_outTime!),
+        clearClockOut: _clearOut,
+        reason: reason,
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 4,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Correct punch',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${widget.employee.name} · ${widget.dateKey}',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Clock in'),
+              subtitle: Text(_inTime.format(context)),
+              trailing: const Icon(Icons.schedule_outlined),
+              onTap: _saving ? null : _pickIn,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Clear clock-out'),
+              subtitle: const Text(
+                'Lets the employee punch again today',
+              ),
+              value: _clearOut,
+              onChanged: _saving
+                  ? null
+                  : (v) => setState(() => _clearOut = v),
+            ),
+            if (!_clearOut)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Clock out'),
+                subtitle: Text(
+                  _outTime == null ? 'Not set' : _outTime!.format(context),
+                ),
+                trailing: const Icon(Icons.schedule_outlined),
+                onTap: _saving ? null : _pickOut,
+              ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _reason,
+              enabled: !_saving,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                hintText: 'Clocked out by mistake',
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Saving...' : 'Save correction'),
+            ),
+          ],
         ),
       ),
     );

@@ -24,6 +24,8 @@ class AppLogo extends StatelessWidget {
   }
 }
 
+/// Full wordmark for light headers. Uses a tightly cropped, transparent
+/// asset so the artwork fills the bar instead of shrinking inside padding.
 class AppHeaderLogo extends StatelessWidget {
   final double height;
   final double? maxWidth;
@@ -36,19 +38,23 @@ class AppHeaderLogo extends StatelessWidget {
     this.alignment = Alignment.centerLeft,
   });
 
-  static const assetPath = 'assets/branding/header_logo.png';
+  static const assetPath = 'assets/branding/header_logo_nav.png';
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      assetPath,
-      height: height,
-      width: maxWidth ?? height * 2.7,
-      fit: BoxFit.contain,
+    final width = maxWidth ?? height * 5.3;
+    return Align(
       alignment: alignment,
-      filterQuality: FilterQuality.high,
-      gaplessPlayback: true,
+      child: Image.asset(
+        assetPath,
+        height: height,
+        width: width,
+        fit: BoxFit.contain,
+        alignment: alignment,
+        filterQuality: FilterQuality.high,
+        gaplessPlayback: true,
+        isAntiAlias: true,
+      ),
     );
   }
 }
-

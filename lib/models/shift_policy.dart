@@ -142,6 +142,8 @@ class HoursEngine {
   }
 
   static String attendanceDateKey(DateTime now, ShiftTemplate shift) {
+    // Live punches use calendar date. This helper remains for night-shift
+    // reporting windows that span midnight.
     if (!shift.crossesMidnight) {
       return Attendance.formatDateKey(now);
     }
@@ -212,5 +214,19 @@ class HoursEngine {
       late: late,
       halfDay: halfDay,
     );
+  }
+
+  /// Day shift: always prefer today's record so a forgotten yesterday
+  /// clock-out cannot hide today's Clock In. Night shift may still show
+  /// yesterday's open punch when the shift crosses midnight.
+  static Attendance? pickLiveAttendance({
+    required Attendance? primary,
+    required Attendance? previous,
+    required bool carryOpenPrevious,
+  }) {
+    if (carryOpenPrevious && previous != null && previous.isClockedIn) {
+      return previous;
+    }
+    return primary;
   }
 }

@@ -51,7 +51,7 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const AppHeaderLogo(height: 38, maxWidth: 176),
+        title: const AppHeaderLogo(height: 38, maxWidth: 230),
         actions: [
           IconButton(
             tooltip: 'Sign Out',
@@ -87,23 +87,25 @@ class _NavSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Container(
-      width: 268,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        border: Border(
-          right: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.6),
+    return Material(
+      color: scheme.surfaceContainerLow,
+      child: SizedBox(
+        width: 268,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              right: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: 0.6),
+              ),
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
+          child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: AppHeaderLogo(height: 42, maxWidth: 228),
+              child: AppHeaderLogo(height: 42, maxWidth: 260),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -215,6 +217,8 @@ class _NavSidebar extends StatelessWidget {
               onTap: onLogout,
             ),
           ],
+        ),
+          ),
         ),
       ),
     );

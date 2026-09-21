@@ -87,6 +87,10 @@ class Attendance {
   final int shortfallMinutes;
   final String workMode;
   final String shiftType;
+  final String regularizedByUid;
+  final String regularizedByName;
+  final DateTime? regularizedAt;
+  final String regularizationReason;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -111,6 +115,10 @@ class Attendance {
     this.shortfallMinutes = 0,
     this.workMode = 'OFFICE',
     this.shiftType = 'DAY',
+    this.regularizedByUid = '',
+    this.regularizedByName = '',
+    this.regularizedAt,
+    this.regularizationReason = '',
     this.createdAt,
     this.updatedAt,
   });
@@ -131,6 +139,7 @@ class Attendance {
   }
 
   bool get isOnBreak => isClockedIn && activeBreak != null;
+  bool get isRegularized => regularizationReason.trim().isNotEmpty;
 
   Duration breakDuration([DateTime? now]) {
     return breaks.fold(
@@ -254,6 +263,12 @@ class Attendance {
       'shortfallMinutes': shortfallMinutes,
       'workMode': workMode,
       'shiftType': shiftType,
+      'regularizedByUid': regularizedByUid,
+      'regularizedByName': regularizedByName,
+      'regularizedAt': regularizedAt != null
+          ? Timestamp.fromDate(regularizedAt!)
+          : null,
+      'regularizationReason': regularizationReason,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -306,6 +321,10 @@ class Attendance {
       shortfallMinutes: (map['shortfallMinutes'] as num?)?.toInt() ?? 0,
       workMode: (map['workMode'] ?? 'OFFICE').toString(),
       shiftType: (map['shiftType'] ?? 'DAY').toString(),
+      regularizedByUid: map['regularizedByUid'] ?? '',
+      regularizedByName: map['regularizedByName'] ?? '',
+      regularizedAt: parseDate(map['regularizedAt']),
+      regularizationReason: map['regularizationReason'] ?? '',
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
     );
@@ -332,6 +351,10 @@ class Attendance {
     int? shortfallMinutes,
     String? workMode,
     String? shiftType,
+    String? regularizedByUid,
+    String? regularizedByName,
+    DateTime? regularizedAt,
+    String? regularizationReason,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -356,6 +379,10 @@ class Attendance {
       shortfallMinutes: shortfallMinutes ?? this.shortfallMinutes,
       workMode: workMode ?? this.workMode,
       shiftType: shiftType ?? this.shiftType,
+      regularizedByUid: regularizedByUid ?? this.regularizedByUid,
+      regularizedByName: regularizedByName ?? this.regularizedByName,
+      regularizedAt: regularizedAt ?? this.regularizedAt,
+      regularizationReason: regularizationReason ?? this.regularizationReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
